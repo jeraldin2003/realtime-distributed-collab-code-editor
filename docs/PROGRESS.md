@@ -2,16 +2,16 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P1-S2
-**Last completed step:** P1-S1
-**Repo state:** backend hocuspocus host running and tested
+**Current step:** P1-S3
+**Last completed step:** P1-S2
+**Repo state:** frontend shell with Monaco editor running
 
 ## Step status
 | ID | Status | Commit | Notes |
 |---|---|---|---|
 | P1-S0 | done | 47207c4 | Scaffolded backend and frontend |
 | P1-S1 | done | c18ff33 | Hocuspocus backend host with sync and health tests |
-| P1-S2 | todo | | |
+| P1-S2 | done | e600dd9 | Frontend shell: App, Header, Editor with Monaco, config.ts, worker setup |
 | P1-S3 | todo | | |
 | P1-S4 | todo | | |
 | P1-S5 | todo | | |
