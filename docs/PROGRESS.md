@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P1-S5
-**Last completed step:** P1-S4
-**Repo state:** server seeds STARTER snippet on first document load; idempotent across multiple clients and reconnects
+**Current step:** P1-S6
+**Last completed step:** P1-S5
+**Repo state:** presence with names, colors, online user badges/count, and remote cursors/selections
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -14,7 +14,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P1-S2 | done | e600dd9 | Frontend shell: App, Header, Editor with Monaco, config.ts, worker setup |
 | P1-S3 | done | 88e2a81 | Live sync: useCollab hook, MonacoBinding, status in Header |
 | P1-S4 | done | 45995c7 | Server-side starter seed in onLoadDocument |
-| P1-S5 | todo | | |
+| P1-S5 | done | dbda5e0 | Presence with names, colors, and remote cursors |
 | P1-S6 | todo | | |
 | P1-S7 | todo | | |
 | P1-S8 | todo | | |
