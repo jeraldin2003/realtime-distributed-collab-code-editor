@@ -303,6 +303,83 @@ describe("backend server", () => {
     expect(ytext1.toString()).toEqual(ytext2.toString());
   });
 
+  it("stress test: MAX_USERS clients connect, make concurrent edits, and all converge", async () => {
+    const maxUsers = 5;
+    const { port, stop } = await createServer({ port: 0, maxUsers });
+    stopServer = stop;
+
+    const docs: Y.Doc[] = [];
+    const providers: HocuspocusProvider[] = [];
+
+    for (let i = 0; i < maxUsers; i++) {
+      const doc = new Y.Doc();
+      docs.push(doc);
+      const provider = new HocuspocusProvider({
+        url: `ws://127.0.0.1:${port}`,
+        name: DOC_NAME,
+        document: doc,
+      });
+      providers.push(provider);
+      activeProviders.push(provider);
+    }
+
+    // Wait until all clients are synced
+    await Promise.all(
+      providers.map(
+        (p) => new Promise<void>((resolve) => p.on("synced", () => resolve()))
+      )
+    );
+
+    // Each client makes multiple edits concurrently at different positions
+    const editCount = 3;
+    for (let round = 0; round < editCount; round++) {
+      for (let i = 0; i < maxUsers; i++) {
+        const text = docs[i].getText(TEXT_KEY);
+        text.insert(text.length, `\n// [Client-${i}] round-${round}`);
+      }
+    }
+
+    // Wait for all documents to converge to the same content
+    const expectedPrefix = STARTER;
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(
+          new Error(
+            `Stress test convergence timeout. Lengths: ${docs.map((d) => d.getText(TEXT_KEY).toString().length).join(", ")}`
+          )
+        );
+      }, 5000);
+
+      const checkAllConverged = () => {
+        const first = docs[0].getText(TEXT_KEY).toString();
+        const allMatch = docs.every(
+          (d) => d.getText(TEXT_KEY).toString() === first
+        );
+        // Ensure all rounds from all clients are included
+        const totalEditsPresent = docs.every((d) => {
+          const content = d.getText(TEXT_KEY).toString();
+          return Array.from({ length: maxUsers }).every((_, u) =>
+            content.includes(`// [Client-${u}] round-${editCount - 1}`)
+          );
+        });
+
+        if (allMatch && totalEditsPresent) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      };
+
+      docs.forEach((d) => d.on("update", checkAllConverged));
+      checkAllConverged();
+    });
+
+    const finalContent = docs[0].getText(TEXT_KEY).toString();
+    expect(finalContent.startsWith(expectedPrefix)).toBe(true);
+    for (let i = 1; i < maxUsers; i++) {
+      expect(docs[i].getText(TEXT_KEY).toString()).toBe(finalContent);
+    }
+  });
+
   it("rejects connection when requesting a document other than DOC_NAME", async () => {
     const { port, stop } = await createServer({ port: 0 });
     stopServer = stop;
