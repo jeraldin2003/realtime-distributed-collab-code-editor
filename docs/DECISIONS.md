@@ -50,3 +50,4 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P1-S3] `providerRef` object used in `useCollab` to avoid TDZ when mock calls `onStatus` synchronously from the constructor.
 - [P1-S3] `Editor` renders only when `collab` is non-null to guarantee `ytext`/`awareness` are stable before `MonacoBinding` is created.
 - [P1-S3] New frontend packages: `yjs` 13.6.33, `@hocuspocus/provider` 4.7.0, `y-monaco` 0.1.6.
+- [hotfix] `monaco-editor` pinned to `0.55.1` (exact) — v0.56+ changed the ESM exports map, breaking deep imports like `monaco-editor/esm/vs/editor/editor.worker` under Vite 8 / Rolldown. Do NOT upgrade `monaco-editor` without verifying deep-import compatibility with the installed Vite version.
