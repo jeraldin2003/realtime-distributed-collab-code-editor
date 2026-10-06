@@ -7,6 +7,7 @@ export interface HeaderProps {
   /** Raw WebSocketStatus string from the provider (e.g. "connecting", "connected", "disconnected"). */
   status?: string;
   onlineCount?: number;
+  maxUsers?: number;
   users?: Array<{ clientId: number; name: string; color: string }>;
 }
 
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   fileName = FILE_NAME,
   status = "connecting",
   onlineCount = 0,
+  maxUsers,
   users = [],
 }) => {
   return (
@@ -96,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
             fontWeight: 500,
           }}
         >
-          {onlineCount} online
+          {maxUsers !== undefined ? `${onlineCount} / ${maxUsers} online` : `${onlineCount} online`}
         </div>
 
         {/* Connection status */}

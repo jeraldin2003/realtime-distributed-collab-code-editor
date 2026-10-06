@@ -51,3 +51,5 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P1-S3] `Editor` renders only when `collab` is non-null to guarantee `ytext`/`awareness` are stable before `MonacoBinding` is created.
 - [P1-S3] New frontend packages: `yjs` 13.6.33, `@hocuspocus/provider` 4.7.0, `y-monaco` 0.1.6.
 - [hotfix] `monaco-editor` pinned to `0.55.1` (exact) — v0.56+ changed the ESM exports map, breaking deep imports like `monaco-editor/esm/vs/editor/editor.worker` under Vite 8 / Rolldown. Do NOT upgrade `monaco-editor` without verifying deep-import compatibility with the installed Vite version.
+- [P1-S6] In header `N / MAX online`, N is derived from awareness presence (client-perceived peers) while MAX is fetched from `/status`. Rejection in Hocuspocus triggers `authenticationFailed` with `permission-denied`, which disconnects the provider and presents `RoomFull` with a manual `Try again` button.
+

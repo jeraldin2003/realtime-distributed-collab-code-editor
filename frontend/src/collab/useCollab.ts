@@ -20,13 +20,17 @@ export interface CollabState {
   ytext: Y.Text;
   awareness: Awareness;
   status: WebSocketStatus;
+  isRoomFull: boolean;
+  retry: () => void;
 }
 
 export function useCollab(): CollabState | null {
   const [state, setState] = useState<CollabState | null>(null);
   const stateRef = useRef<CollabState | null>(null);
+  const isRoomFullRef = useRef(false);
 
   useEffect(() => {
+    let active = true;
     const ydoc = new Y.Doc();
     const ytext = ydoc.getText("content");
 
@@ -35,23 +39,59 @@ export function useCollab(): CollabState | null {
     // itself would be in the TDZ if declared with `const`).
     const providerRef: { current: HocuspocusProvider | null } = { current: null };
 
+    const retry = () => {
+      isRoomFullRef.current = false;
+      if (providerRef.current) {
+        // Disconnect and reconnect to attempt a new slot
+        providerRef.current.configuration.websocketProvider.disconnect();
+        providerRef.current.configuration.websocketProvider.connect();
+      }
+      if (stateRef.current) {
+        const next: CollabState = {
+          ...stateRef.current,
+          isRoomFull: false,
+          status: WebSocketStatus.Connecting,
+        };
+        stateRef.current = next;
+        setState(next);
+      }
+    };
+
     const provider = new HocuspocusProvider({
       url: WS_URL,
       name: DOC_NAME,
       document: ydoc,
       onStatus({ status }: { status: WebSocketStatus }) {
-        // providerRef.current may still be null if this fires synchronously
-        // during the constructor. In that case awareness will be set
-        // immediately after construction and the initial setState below covers
-        // the initial status; subsequent calls will have providerRef populated.
+        if (!active) return;
         const aw =
           stateRef.current?.awareness ??
           (providerRef.current?.awareness as Awareness | undefined) ??
           null;
-        if (!aw) return; // awareness not ready yet; initial setState covers this
-        const next: CollabState = { ytext, awareness: aw, status };
+        if (!aw) return;
+        const next: CollabState = {
+          ytext,
+          awareness: aw,
+          status,
+          isRoomFull: isRoomFullRef.current,
+          retry,
+        };
         stateRef.current = next;
         setState(next);
+      },
+      onAuthenticationFailed() {
+        if (!active) return;
+        isRoomFullRef.current = true;
+        // Stop provider from retrying aggressively while room is full
+        providerRef.current?.configuration.websocketProvider.disconnect();
+        if (stateRef.current) {
+          const next: CollabState = {
+            ...stateRef.current,
+            isRoomFull: true,
+            status: WebSocketStatus.Disconnected,
+          };
+          stateRef.current = next;
+          setState(next);
+        }
       },
     });
 
@@ -68,11 +108,14 @@ export function useCollab(): CollabState | null {
       ytext,
       awareness,
       status: WebSocketStatus.Connecting,
+      isRoomFull: false,
+      retry,
     };
     stateRef.current = initial;
     setState(initial);
 
     return () => {
+      active = false;
       providerRef.current = null;
       // Destroy provider first (closes socket/timers), then the doc.
       provider.destroy();

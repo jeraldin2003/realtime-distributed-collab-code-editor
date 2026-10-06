@@ -93,6 +93,19 @@ describe("Header component", () => {
     expect(screen.getByText("Swift Fox")).toBeInTheDocument();
     expect(screen.getByText("Calm Panda")).toBeInTheDocument();
   });
+
+  it("renders N / MAX online when maxUsers is provided", () => {
+    render(
+      <Header
+        appName="Collab Editor"
+        fileName={FILE_NAME}
+        status="connected"
+        onlineCount={3}
+        maxUsers={10}
+      />
+    );
+    expect(screen.getByText("3 / 10 online")).toBeInTheDocument();
+  });
 });
 
 describe("App shell", () => {
@@ -104,4 +117,5 @@ describe("App shell", () => {
     expect(screen.getByText("1 online")).toBeInTheDocument();
   });
 });
+
 

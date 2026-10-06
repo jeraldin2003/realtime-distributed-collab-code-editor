@@ -1,11 +1,14 @@
 import { Header } from "./components/Header.js";
 import { Editor } from "./components/Editor.js";
+import { RoomFull } from "./components/RoomFull.js";
 import { useCollab } from "./collab/useCollab.js";
 import { usePresence } from "./collab/usePresence.js";
+import { useStatus } from "./collab/useStatus.js";
 
 export function App() {
   const collab = useCollab();
   const presence = usePresence(collab?.awareness);
+  const statusData = useStatus();
 
   return (
     <div
@@ -21,6 +24,7 @@ export function App() {
       <Header
         status={collab?.status}
         onlineCount={presence.onlineCount}
+        maxUsers={statusData?.maxUsers}
         users={presence.users}
       />
       <main
@@ -31,13 +35,12 @@ export function App() {
           position: "relative",
         }}
       >
-        {/*
-          Render the Editor only once the collab state is ready so that
-          ytext and awareness are stable non-null values from the first mount.
-          This also avoids flashing the editor before the provider exists.
-        */}
-        {collab && (
-          <Editor ytext={collab.ytext} awareness={collab.awareness} />
+        {collab?.isRoomFull ? (
+          <RoomFull onRetry={collab.retry} />
+        ) : (
+          collab && (
+            <Editor ytext={collab.ytext} awareness={collab.awareness} />
+          )
         )}
       </main>
     </div>

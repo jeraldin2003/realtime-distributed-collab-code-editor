@@ -1,13 +1,17 @@
 import { Server } from "@hocuspocus/server";
-import { DOC_NAME, ALLOWED_ORIGIN, TEXT_KEY, STARTER } from "./config.js";
+import { DOC_NAME, ALLOWED_ORIGIN, TEXT_KEY, STARTER, MAX_USERS } from "./config.js";
+import { ConnectionLimiter } from "./connectionLimiter.js";
 
 export interface CreateServerOptions {
   port?: number;
   quiet?: boolean;
+  maxUsers?: number;
 }
 
 export async function createServer(options: CreateServerOptions = {}) {
   const seededDocuments = new Set<string>();
+  const maxUsers = options.maxUsers ?? MAX_USERS;
+  const limiter = new ConnectionLimiter(maxUsers);
 
   const server = new Server({
     port: options.port ?? 1234,
@@ -31,6 +35,12 @@ export async function createServer(options: CreateServerOptions = {}) {
         response.end(JSON.stringify({ ok: true }));
         throw null; // Prevent default Welcome message
       }
+
+      if (url.pathname === "/status" && request.method === "GET") {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ users: limiter.count(), maxUsers: limiter.getMaxUsers() }));
+        throw null; // Prevent default Welcome message
+      }
     },
     async onLoadDocument(data) {
       if (data.documentName === DOC_NAME && !seededDocuments.has(data.documentName)) {
@@ -48,11 +58,24 @@ export async function createServer(options: CreateServerOptions = {}) {
         console.warn(`[reject] doc="${documentName}" client="${socketId.slice(0, 8)}" reason="invalid doc name"`);
         throw new Error(`Unauthorized document: ${documentName}`);
       }
-      console.log(`[connect] doc="${documentName}" client="${socketId.slice(0, 8)}"`);
+
+      if (!limiter.tryAdd(socketId)) {
+        console.warn(
+          `[reject] doc="${documentName}" client="${socketId.slice(0, 8)}" reason="room full" count=${limiter.count()}/${limiter.getMaxUsers()}`
+        );
+        throw new Error("room-full");
+      }
+
+      console.log(
+        `[connect] doc="${documentName}" client="${socketId.slice(0, 8)}" count=${limiter.count()}/${limiter.getMaxUsers()}`
+      );
     },
     async onDisconnect(data) {
       const { documentName, socketId } = data;
-      console.log(`[disconnect] doc="${documentName}" client="${socketId.slice(0, 8)}"`);
+      limiter.remove(socketId);
+      console.log(
+        `[disconnect] doc="${documentName}" client="${socketId.slice(0, 8)}" count=${limiter.count()}/${limiter.getMaxUsers()}`
+      );
     },
   });
 
@@ -61,6 +84,7 @@ export async function createServer(options: CreateServerOptions = {}) {
   return {
     server,
     port: (server.address as { port: number }).port,
+    limiter,
     async stop() {
       await server.destroy();
     },

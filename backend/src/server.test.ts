@@ -30,6 +30,71 @@ describe("backend server", () => {
     expect(data).toEqual({ ok: true });
   });
 
+  it("serves GET /status with active users and maxUsers", async () => {
+    const { port, stop } = await createServer({ port: 0, maxUsers: 5 });
+    stopServer = stop;
+
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("access-control-allow-origin")).toBe(ALLOWED_ORIGIN);
+    const data = await res.json();
+    expect(data).toEqual({ users: 0, maxUsers: 5 });
+  });
+
+  it("enforces MAX_USERS cap: rejects client over limit and accepts after disconnect", async () => {
+    const { port, stop } = await createServer({ port: 0, maxUsers: 1 });
+    stopServer = stop;
+
+    const doc1 = new Y.Doc();
+    const provider1 = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc1,
+    });
+    activeProviders.push(provider1);
+    await new Promise<void>((resolve) => provider1.on("synced", () => resolve()));
+
+    // Verify /status reflects 1 user
+    const res1 = await fetch(`http://127.0.0.1:${port}/status`);
+    const data1 = await res1.json();
+    expect(data1).toEqual({ users: 1, maxUsers: 1 });
+
+    // Second client should be rejected because room is full
+    const doc2 = new Y.Doc();
+    const provider2 = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc2,
+    });
+    activeProviders.push(provider2);
+
+    const authFailed = await new Promise<boolean>((resolve) => {
+      provider2.on("authenticationFailed", () => resolve(true));
+      setTimeout(() => resolve(false), 2000);
+    });
+    expect(authFailed).toBe(true);
+
+    // Disconnect provider1
+    provider1.destroy();
+    // Allow disconnect event loop to register removal
+    await new Promise((r) => setTimeout(r, 100));
+
+    // A third client should now be accepted
+    const doc3 = new Y.Doc();
+    const provider3 = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc3,
+    });
+    activeProviders.push(provider3);
+
+    const synced = await new Promise<boolean>((resolve) => {
+      provider3.on("synced", () => resolve(true));
+      setTimeout(() => resolve(false), 2000);
+    });
+    expect(synced).toBe(true);
+  });
+
   it("seeds STARTER snippet when document is first created and empty", async () => {
     const { port, stop } = await createServer({ port: 0 });
     stopServer = stop;
