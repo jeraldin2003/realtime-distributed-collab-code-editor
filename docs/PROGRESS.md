@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S2
-**Last completed step:** P2-S1
-**Repo state:** Phase 1 complete; P2-S1 backend file model and doc name rules done
+**Current step:** P2-S3
+**Last completed step:** P2-S2
+**Repo state:** Phase 2 in progress; index sync, file list sidebar, and cap on index doc done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -19,7 +19,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P1-S7 | done | 77a4fd8 | Connection status and reconnect UX |
 | P1-S8 | done | 9f9c13e | Phase 1 hardening, stress test, and docs (tag phase-1-complete) |
 | P2-S1 | done | 3789c1a | Backend file model: docNames, fileIndex, server doc-name validation |
-| P2-S2 | todo | | |
+| P2-S2 | done | e5f5a26 | Index sync, file list sidebar, cap moved to project:index |
 | P2-S3 | todo | | |
 | P2-S4 | todo | | |
 | P2-S5 | todo | | |
@@ -31,7 +31,7 @@ The agent updates this file at the end of every step. It is the memory between s
 (none)
 
 ## Notes for next session
-- P2-S1 added: `docNames.ts` (parseDocName, fileDocName, FILE_ID_REGEX), `fileIndex.ts` (ensureDefaultIndex, createFile, renameFile, deleteFile, listFiles), new constants in `config.ts`.
-- Server now accepts `project:index` and `file:<id>` only; rejects everything else. `project:index` seeded with default project (main → main.ts). `file:main` still seeded with STARTER.
-- Cap still on `file:main` connections — P2-S2 moves it to `project:index`.
-- frontend unchanged; Phase 1 UI fully working.
+- P2-S2 added: `useIndex.ts` (shared HocuspocusProviderWebsocket + index provider, file list, room-full, retry), `useCollab.ts` now accepts `websocketProvider` param and no longer manages cap/room-full logic, `FileList.tsx`, `Sidebar.tsx`.
+- App.tsx wires `useIndex` → `useCollab(websocketProvider)`; presence and status come from index provider; sidebar always shows; active file hardcoded to "main".
+- Cap is now counted on `project:index` connections only. `file:<id>` connections not counted.
+- TDZ fix in useCollab.ts: providerRef pattern (same as P1-S3) needed because onStatus is called synchronously during HocuspocusProvider construction in tests.

@@ -58,3 +58,9 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S1] `ensureDefaultIndex` is idempotent and called in `onLoadDocument` for `project:index`; seeding `file:main` retains the existing Set-guard.
 - [P2-S1] Cap stays on `file:main` connections only; moves to `project:index` in P2-S2.
 - [P2-S1] `listFiles` sorts by name then id for stable, deterministic order across clients (concurrent same-name creates produce two entries, allowed per spec).
+- [P2-S2] One `HocuspocusProviderWebsocket` created in `useIndex`, passed to `useCollab` as `websocketProvider`; one browser tab = one socket.
+- [P2-S2] When `websocketProvider` is supplied to `HocuspocusProvider`, `manageSocket=false` — provider.destroy() detaches but does NOT close the socket; socket is closed by `useIndex` cleanup.
+- [P2-S2] `useCollab` now accepts `websocketProvider` as a prop and re-creates on change; room-full/retry moved entirely to `useIndex`.
+- [P2-S2] `providerRef` pattern reused in `useCollab` to avoid TDZ when mock calls `onStatus` synchronously during construction (same root cause as P1-S3).
+- [P2-S2] Presence (`usePresence`) reads from index provider awareness; file provider awareness unused for presence in this step.
+- [P2-S2] Active file is hardcoded to "main" in App.tsx for P2-S2; switching wired in P2-S3.
