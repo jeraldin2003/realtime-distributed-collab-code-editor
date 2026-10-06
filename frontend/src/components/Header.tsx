@@ -6,12 +6,16 @@ export interface HeaderProps {
   fileName?: string;
   /** Raw WebSocketStatus string from the provider (e.g. "connecting", "connected", "disconnected"). */
   status?: string;
+  onlineCount?: number;
+  users?: Array<{ clientId: number; name: string; color: string }>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   appName = "Collab Editor",
   fileName = FILE_NAME,
   status = "connecting",
+  onlineCount = 0,
+  users = [],
 }) => {
   return (
     <header
@@ -29,30 +33,93 @@ export const Header: React.FC<HeaderProps> = ({
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       }}
     >
-      <div style={{ fontWeight: 600, color: "#ffffff" }}>{appName}</div>
-      <div style={{ color: "#9cdcfe", fontFamily: "monospace", fontSize: "13px" }}>
-        {fileName}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ fontWeight: 600, color: "#ffffff" }}>{appName}</div>
+        <div style={{ color: "#9cdcfe", fontFamily: "monospace", fontSize: "13px" }}>
+          {fileName}
+        </div>
       </div>
+
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
-          color: "#888888",
-          fontSize: "12px",
+          gap: "16px",
         }}
       >
-        <span
+        {/* Online users list */}
+        {users.length > 0 && (
+          <div
+            data-testid="header-users-list"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            {users.map((u) => (
+              <span
+                key={u.clientId}
+                title={u.name}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  backgroundColor: "#2d2d2d",
+                  fontSize: "12px",
+                  color: "#e0e0e0",
+                }}
+              >
+                <span
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor: u.color,
+                    display: "inline-block",
+                  }}
+                />
+                <span>{u.name}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Online count */}
+        <div
+          data-testid="header-online-count"
           style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            backgroundColor: "#4caf50",
-            display: "inline-block",
+            color: "#9cdcfe",
+            fontSize: "12px",
+            fontWeight: 500,
           }}
-        />
-        {/* Raw provider status string — polished UX comes in P1-S7 */}
-        <span>{status}</span>
+        >
+          {onlineCount} online
+        </div>
+
+        {/* Connection status */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            color: "#888888",
+            fontSize: "12px",
+          }}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: status === "connected" ? "#4caf50" : "#ff9800",
+              display: "inline-block",
+            }}
+          />
+          <span>{status}</span>
+        </div>
       </div>
     </header>
   );

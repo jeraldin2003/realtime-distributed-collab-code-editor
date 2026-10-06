@@ -1,9 +1,11 @@
 import { Header } from "./components/Header.js";
 import { Editor } from "./components/Editor.js";
 import { useCollab } from "./collab/useCollab.js";
+import { usePresence } from "./collab/usePresence.js";
 
 export function App() {
   const collab = useCollab();
+  const presence = usePresence(collab?.awareness);
 
   return (
     <div
@@ -16,7 +18,11 @@ export function App() {
         overflow: "hidden",
       }}
     >
-      <Header status={collab?.status} />
+      <Header
+        status={collab?.status}
+        onlineCount={presence.onlineCount}
+        users={presence.users}
+      />
       <main
         style={{
           flex: 1,

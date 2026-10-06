@@ -14,6 +14,7 @@ import {
 } from "@hocuspocus/provider";
 import { Awareness } from "y-protocols/awareness";
 import { DOC_NAME, WS_URL } from "../config.js";
+import { getOrCreateIdentity } from "./identity.js";
 
 export interface CollabState {
   ytext: Y.Text;
@@ -57,6 +58,10 @@ export function useCollab(): CollabState | null {
     providerRef.current = provider;
     // awareness is always created by Hocuspocus during construction.
     const awareness = provider.awareness as Awareness;
+
+    // Set local identity in awareness
+    const identity = getOrCreateIdentity();
+    awareness.setLocalStateField("user", identity);
 
     // Set the initial state synchronously so the Editor renders immediately.
     const initial: CollabState = {

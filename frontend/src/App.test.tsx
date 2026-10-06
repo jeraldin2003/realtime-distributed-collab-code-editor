@@ -46,9 +46,11 @@ vi.mock("@hocuspocus/provider", () => {
   };
   class HocuspocusProvider {
     awareness = {
+      clientID: 1,
       on: vi.fn(),
       off: vi.fn(),
       setLocalStateField: vi.fn(),
+      getStates: vi.fn(() => new Map([[1, { user: { name: "Swift Fox", color: "#4caf50" } }]])),
     };
     constructor({ onStatus }: { onStatus?: (d: { status: string }) => void }) {
       // Immediately call onStatus so useCollab's state becomes non-null.
@@ -72,10 +74,24 @@ vi.mock("yjs", () => {
 
 describe("Header component", () => {
   it("renders app name, file name, and status text", () => {
-    render(<Header appName="Collab Editor" fileName={FILE_NAME} status="connected" />);
+    render(
+      <Header
+        appName="Collab Editor"
+        fileName={FILE_NAME}
+        status="connected"
+        onlineCount={2}
+        users={[
+          { clientId: 1, name: "Swift Fox", color: "#4caf50" },
+          { clientId: 2, name: "Calm Panda", color: "#2196f3" },
+        ]}
+      />
+    );
     expect(screen.getByText("Collab Editor")).toBeInTheDocument();
     expect(screen.getByText(FILE_NAME)).toBeInTheDocument();
     expect(screen.getByText("connected")).toBeInTheDocument();
+    expect(screen.getByText("2 online")).toBeInTheDocument();
+    expect(screen.getByText("Swift Fox")).toBeInTheDocument();
+    expect(screen.getByText("Calm Panda")).toBeInTheDocument();
   });
 });
 
@@ -85,5 +101,7 @@ describe("App shell", () => {
     expect(screen.getByText("Collab Editor")).toBeInTheDocument();
     expect(screen.getByText(FILE_NAME)).toBeInTheDocument();
     expect(screen.getByTestId("monaco-editor-container")).toBeInTheDocument();
+    expect(screen.getByText("1 online")).toBeInTheDocument();
   });
 });
+
