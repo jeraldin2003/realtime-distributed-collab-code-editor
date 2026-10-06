@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P1-S8
-**Last completed step:** P1-S7
-**Repo state:** connection UX with status indicator, offline banner, and offline reconnect convergence
+**Current step:** P2-S1
+**Last completed step:** P1-S8
+**Repo state:** Phase 1 complete and hardened; git tag phase-1-complete
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -17,7 +17,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P1-S5 | done | dbda5e0 | Presence with names, colors, and remote cursors |
 | P1-S6 | done | 678f109 | Server-enforced user cap with room-full UI |
 | P1-S7 | done | 77a4fd8 | Connection status and reconnect UX |
-| P1-S8 | todo | | |
+| P1-S8 | done | 9f9c13e | Phase 1 hardening, stress test, and docs (tag phase-1-complete) |
 | P2-S1 | todo | | |
 | P2-S2 | todo | | |
 | P2-S3 | todo | | |
