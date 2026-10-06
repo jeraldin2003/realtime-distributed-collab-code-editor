@@ -380,7 +380,7 @@ describe("backend server", () => {
     }
   });
 
-  it("rejects connection when requesting a document other than DOC_NAME", async () => {
+  it("rejects connection when requesting an unrecognised doc name", async () => {
     const { port, stop } = await createServer({ port: 0 });
     stopServer = stop;
 
@@ -398,5 +398,88 @@ describe("backend server", () => {
     });
 
     expect(authFailed).toBe(true);
+  });
+
+  // --- P2-S1 integration tests ---
+
+  it("rejects bad doc names: plain word and path-traversal id", async () => {
+    const { port, stop } = await createServer({ port: 0 });
+    stopServer = stop;
+
+    for (const badName of ["foo", "file:../x", "file:UPPER", "project:other"]) {
+      const doc = new Y.Doc();
+      const provider = new HocuspocusProvider({
+        url: `ws://127.0.0.1:${port}`,
+        name: badName,
+        document: doc,
+      });
+      activeProviders.push(provider);
+
+      const authFailed = await new Promise<boolean>((resolve) => {
+        provider.on("authenticationFailed", () => resolve(true));
+        setTimeout(() => resolve(false), 2000);
+      });
+      expect(authFailed, `expected reject for "${badName}"`).toBe(true);
+    }
+  });
+
+  it("accepts project:index and seeds one file entry 'main'", async () => {
+    const { port, stop } = await createServer({ port: 0 });
+    stopServer = stop;
+
+    const doc = new Y.Doc();
+    const provider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: "project:index",
+      document: doc,
+    });
+    activeProviders.push(provider);
+
+    await new Promise<void>((resolve) => provider.on("synced", () => resolve()));
+
+    const filesMap = doc.getMap("files") as Y.Map<Y.Map<unknown>>;
+    expect(filesMap.size).toBe(1);
+    expect(filesMap.has("main")).toBe(true);
+    const mainEntry = filesMap.get("main");
+    expect(mainEntry?.get("name")).toBe("main.ts");
+    expect(mainEntry?.get("type")).toBe("file");
+  });
+
+  it("accepts file:main and it still contains the starter snippet", async () => {
+    const { port, stop } = await createServer({ port: 0 });
+    stopServer = stop;
+
+    const doc = new Y.Doc();
+    const provider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc,
+    });
+    activeProviders.push(provider);
+
+    await new Promise<void>((resolve) => provider.on("synced", () => resolve()));
+    expect(doc.getText(TEXT_KEY).toString()).toBe(STARTER);
+  });
+
+  it("accepts file:<other-id> as a valid empty doc", async () => {
+    const { port, stop } = await createServer({ port: 0 });
+    stopServer = stop;
+
+    const doc = new Y.Doc();
+    const provider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: "file:abc-123",
+      document: doc,
+    });
+    activeProviders.push(provider);
+
+    const synced = await new Promise<boolean>((resolve) => {
+      provider.on("synced", () => resolve(true));
+      setTimeout(() => resolve(false), 2000);
+    });
+    // Should connect and sync (empty doc, no starter seeded)
+    expect(synced).toBe(true);
+    // Content doc starts empty
+    expect(doc.getText(TEXT_KEY).toString()).toBe("");
   });
 });
