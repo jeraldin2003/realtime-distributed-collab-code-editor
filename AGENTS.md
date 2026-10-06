@@ -68,3 +68,11 @@ Stop and ask the user (do not guess) when:
 | `monaco-editor` | Touching Monaco, y-monaco, cursors, editor UI |
 | `file-model` | Any Phase 2 step (file index, per-file docs, tree) |
 | `testing-verification` | Writing tests or verifying any step |
+
+
+## Tool notes (Kiro)
+- Skills and workflows live in .agents/. They are not auto-loaded: read the files by path as the operating loop says.
+- Do not create Kiro specs (requirements/design/tasks). docs/steps/ is the plan.
+- Never read a whole .d.ts file; grep -n -A10 on the symbol. Check docs/API_NOTES.md first.
+- Dependencies are pinned. Never run npm update or install @latest for existing packages.
+- One step per task. Stop after the step report. Never continue to the next step on your own.
