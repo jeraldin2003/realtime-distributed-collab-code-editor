@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { createServer } from "./server.js";
-import { DOC_NAME, TEXT_KEY, ALLOWED_ORIGIN, STARTER } from "./config.js";
+import { DOC_NAME, TEXT_KEY, ALLOWED_ORIGIN, STARTER, INDEX_DOC } from "./config.js";
 
 describe("backend server", () => {
   let stopServer: (() => Promise<void>) | null = null;
@@ -45,10 +45,11 @@ describe("backend server", () => {
     const { port, stop } = await createServer({ port: 0, maxUsers: 1 });
     stopServer = stop;
 
+    // Cap is counted on project:index connections (P2-S2)
     const doc1 = new Y.Doc();
     const provider1 = new HocuspocusProvider({
       url: `ws://127.0.0.1:${port}`,
-      name: DOC_NAME,
+      name: INDEX_DOC,
       document: doc1,
     });
     activeProviders.push(provider1);
@@ -63,7 +64,7 @@ describe("backend server", () => {
     const doc2 = new Y.Doc();
     const provider2 = new HocuspocusProvider({
       url: `ws://127.0.0.1:${port}`,
-      name: DOC_NAME,
+      name: INDEX_DOC,
       document: doc2,
     });
     activeProviders.push(provider2);
@@ -83,7 +84,7 @@ describe("backend server", () => {
     const doc3 = new Y.Doc();
     const provider3 = new HocuspocusProvider({
       url: `ws://127.0.0.1:${port}`,
-      name: DOC_NAME,
+      name: INDEX_DOC,
       document: doc3,
     });
     activeProviders.push(provider3);
@@ -93,6 +94,47 @@ describe("backend server", () => {
       setTimeout(() => resolve(false), 2000);
     });
     expect(synced).toBe(true);
+  });
+
+  it("file:<id> connections do not count toward the user cap", async () => {
+    // With maxUsers=1 and one index user connected, additional file:<id>
+    // connections from the same socket should still be accepted.
+    const { port, stop } = await createServer({ port: 0, maxUsers: 1 });
+    stopServer = stop;
+
+    // Connect to index — occupies the single slot
+    const indexDoc = new Y.Doc();
+    const indexProvider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: INDEX_DOC,
+      document: indexDoc,
+    });
+    activeProviders.push(indexProvider);
+    await new Promise<void>((resolve) => indexProvider.on("synced", () => resolve()));
+
+    const res = await fetch(`http://127.0.0.1:${port}/status`);
+    const data = await res.json();
+    expect(data).toEqual({ users: 1, maxUsers: 1 });
+
+    // Now connect to file:main — should be accepted even though index is full
+    const fileDoc = new Y.Doc();
+    const fileProvider = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: fileDoc,
+    });
+    activeProviders.push(fileProvider);
+
+    const fileSynced = await new Promise<boolean>((resolve) => {
+      fileProvider.on("synced", () => resolve(true));
+      setTimeout(() => resolve(false), 2000);
+    });
+    expect(fileSynced).toBe(true);
+
+    // Count should still be 1 (file connection not counted)
+    const res2 = await fetch(`http://127.0.0.1:${port}/status`);
+    const data2 = await res2.json();
+    expect(data2).toEqual({ users: 1, maxUsers: 1 });
   });
 
   it("seeds STARTER snippet when document is first created and empty", async () => {

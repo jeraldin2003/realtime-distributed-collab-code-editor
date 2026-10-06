@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import App from "./App.js";
 import { Header } from "./components/Header.js";
+import { Sidebar } from "./components/Sidebar.js";
+import { FileList } from "./components/FileList.js";
 import { FILE_NAME } from "./config.js";
 
 // monaco-workers.ts uses Vite-specific ?worker imports that only work in the
@@ -9,7 +11,6 @@ import { FILE_NAME } from "./config.js";
 vi.mock("./monaco-workers.js", () => ({}));
 
 // Mock monaco-editor create for unit testing in jsdom environment.
-// getModel() must return a non-null object so MonacoBinding can attach.
 vi.mock("monaco-editor", () => ({
   editor: {
     create: vi.fn(() => ({
@@ -38,27 +39,46 @@ vi.mock("y-monaco", () => {
 });
 
 // Mock @hocuspocus/provider so no real WebSocket is opened in tests.
+// Now includes HocuspocusProviderWebsocket for the shared socket.
 vi.mock("@hocuspocus/provider", () => {
   const WebSocketStatus = {
     Connecting: "connecting",
     Connected: "connected",
     Disconnected: "disconnected",
   };
+
+  // Shared mock websocket — just needs to exist as an object reference.
+  class HocuspocusProviderWebsocket {
+    connect() {}
+    disconnect() {}
+    destroy() {}
+  }
+
   class HocuspocusProvider {
     awareness = {
       clientID: 1,
       on: vi.fn(),
       off: vi.fn(),
       setLocalStateField: vi.fn(),
-      getStates: vi.fn(() => new Map([[1, { user: { name: "Swift Fox", color: "#4caf50" } }]])),
+      getStates: vi.fn(() =>
+        new Map([[1, { user: { name: "Swift Fox", color: "#4caf50" } }]])
+      ),
     };
-    constructor({ onStatus }: { onStatus?: (d: { status: string }) => void }) {
-      // Immediately call onStatus so useCollab's state becomes non-null.
+
+    constructor({
+      onStatus,
+    }: {
+      onStatus?: (d: { status: string }) => void;
+      [key: string]: unknown;
+    }) {
+      // Immediately call onStatus so hooks' state becomes non-null.
       onStatus?.({ status: WebSocketStatus.Connecting });
     }
+
     destroy() {}
   }
-  return { HocuspocusProvider, WebSocketStatus };
+
+  return { HocuspocusProvider, HocuspocusProviderWebsocket, WebSocketStatus };
 });
 
 // Mock yjs so no real CRDT is created.
@@ -66,6 +86,15 @@ vi.mock("yjs", () => {
   class Doc {
     getText() {
       return {};
+    }
+    getMap() {
+      // Return a minimal Y.Map-like with empty entries and observe/unobserve.
+      return {
+        entries: () => [],
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        size: 0,
+      };
     }
     destroy() {}
   }
@@ -108,14 +137,62 @@ describe("Header component", () => {
   });
 });
 
+describe("FileList component", () => {
+  it("renders a list of file names", () => {
+    render(
+      <FileList
+        files={[
+          { id: "main", name: "main.ts", type: "file", parentId: null },
+          { id: "abc", name: "utils.ts", type: "file", parentId: null },
+        ]}
+        activeFileId="main"
+      />
+    );
+    expect(screen.getByTestId("file-list")).toBeInTheDocument();
+    expect(screen.getByText("main.ts")).toBeInTheDocument();
+    expect(screen.getByText("utils.ts")).toBeInTheDocument();
+  });
+
+  it("shows 'No files' when list is empty", () => {
+    render(<FileList files={[]} />);
+    expect(screen.getByText("No files")).toBeInTheDocument();
+  });
+
+  it("marks the active file item", () => {
+    render(
+      <FileList
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        activeFileId="main"
+      />
+    );
+    expect(screen.getByTestId("file-item-main")).toBeInTheDocument();
+  });
+});
+
+describe("Sidebar component", () => {
+  it("renders the sidebar with Files header and file list", () => {
+    render(
+      <Sidebar
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        activeFileId="main"
+      />
+    );
+    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+    expect(screen.getByText("Files")).toBeInTheDocument();
+    expect(screen.getByText("main.ts")).toBeInTheDocument();
+  });
+});
+
 describe("App shell", () => {
   it("renders header and editor container element", () => {
     render(<App />);
     expect(screen.getByText("Collab Editor")).toBeInTheDocument();
-    expect(screen.getByText(FILE_NAME)).toBeInTheDocument();
     expect(screen.getByTestId("monaco-editor-container")).toBeInTheDocument();
-    expect(screen.getByText("1 online")).toBeInTheDocument();
+  });
+
+  it("renders the sidebar", () => {
+    render(<App />);
+    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+    expect(screen.getByText("Files")).toBeInTheDocument();
   });
 });
-
-

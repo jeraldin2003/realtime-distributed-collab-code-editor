@@ -77,8 +77,9 @@ export async function createServer(options: CreateServerOptions = {}) {
         throw new Error(`Unauthorized document: ${documentName}`);
       }
 
-      // Cap applies only to file:main connections (unchanged in P2-S1; moves to project:index in P2-S2).
-      if (parsed.kind === "file" && parsed.id === "main") {
+      // Cap applies only to project:index connections (one per browser tab = one user).
+      // Connections to file:<id> docs are never counted. (P2-S2)
+      if (parsed.kind === "index") {
         if (!limiter.tryAdd(socketId)) {
           console.warn(
             `[reject] doc="${documentName}" client="${socketId.slice(0, 8)}" reason="room full" count=${limiter.count()}/${limiter.getMaxUsers()}`
@@ -96,8 +97,8 @@ export async function createServer(options: CreateServerOptions = {}) {
       const { documentName, socketId } = data;
       const parsed = parseDocName(documentName);
 
-      // Only remove from limiter if it was a counted connection (file:main).
-      if (parsed?.kind === "file" && parsed.id === "main") {
+      // Only remove from limiter if it was a counted connection (project:index).
+      if (parsed?.kind === "index") {
         limiter.remove(socketId);
         console.log(
           `[disconnect] doc="${documentName}" client="${socketId.slice(0, 8)}" count=${limiter.count()}/${limiter.getMaxUsers()}`
