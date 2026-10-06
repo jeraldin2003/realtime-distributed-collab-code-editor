@@ -234,6 +234,75 @@ describe("backend server", () => {
     expect([STARTER + "AliceBob", STARTER + "BobAlice"]).toContain(ytext1.toString());
   });
 
+  it("converges offline edits after client reconnects", async () => {
+    const { port, stop } = await createServer({ port: 0 });
+    stopServer = stop;
+
+    const doc1 = new Y.Doc();
+    const doc2 = new Y.Doc();
+
+    const provider1 = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc1,
+    });
+    activeProviders.push(provider1);
+
+    const provider2 = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc2,
+    });
+    activeProviders.push(provider2);
+
+    await Promise.all([
+      new Promise<void>((resolve) => provider1.on("synced", () => resolve())),
+      new Promise<void>((resolve) => provider2.on("synced", () => resolve())),
+    ]);
+
+    const ytext1 = doc1.getText(TEXT_KEY);
+    const ytext2 = doc2.getText(TEXT_KEY);
+    const initLen = STARTER.length;
+
+    // Client 1 disconnects (simulating network offline / tab refresh)
+    provider1.destroy();
+
+    // While client 1 is offline, both clients type concurrently
+    ytext1.insert(initLen, "\n// Client 1 offline edit");
+    ytext2.insert(initLen, "\n// Client 2 online edit");
+
+    // Client 1 reconnects with the same document
+    const provider1Reconnected = new HocuspocusProvider({
+      url: `ws://127.0.0.1:${port}`,
+      name: DOC_NAME,
+      document: doc1,
+    });
+    activeProviders.push(provider1Reconnected);
+
+    // Wait for reconnection to sync
+    await new Promise<void>((resolve) =>
+      provider1Reconnected.on("synced", () => resolve())
+    );
+
+    // Wait for both to converge
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (
+          ytext1.toString() === ytext2.toString() &&
+          ytext1.toString().includes("Client 1 offline edit") &&
+          ytext1.toString().includes("Client 2 online edit")
+        ) {
+          resolve();
+        }
+      };
+      doc1.on("update", check);
+      doc2.on("update", check);
+      check();
+    });
+
+    expect(ytext1.toString()).toEqual(ytext2.toString());
+  });
+
   it("rejects connection when requesting a document other than DOC_NAME", async () => {
     const { port, stop } = await createServer({ port: 0 });
     stopServer = stop;

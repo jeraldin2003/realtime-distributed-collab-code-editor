@@ -1,6 +1,7 @@
 import { Header } from "./components/Header.js";
 import { Editor } from "./components/Editor.js";
 import { RoomFull } from "./components/RoomFull.js";
+import { OfflineBanner } from "./components/OfflineBanner.js";
 import { useCollab } from "./collab/useCollab.js";
 import { usePresence } from "./collab/usePresence.js";
 import { useStatus } from "./collab/useStatus.js";
@@ -27,6 +28,7 @@ export function App() {
         maxUsers={statusData?.maxUsers}
         users={presence.users}
       />
+      <OfflineBanner visible={Boolean(collab && collab.status === "disconnected" && !collab.isRoomFull)} />
       <main
         style={{
           flex: 1,

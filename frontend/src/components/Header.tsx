@@ -19,6 +19,21 @@ export const Header: React.FC<HeaderProps> = ({
   maxUsers,
   users = [],
 }) => {
+  const formatStatus = (s: string) => {
+    switch (s) {
+      case "connected":
+        return { label: "Connected", color: "#4caf50" };
+      case "connecting":
+        return { label: "Connecting…", color: "#ff9800" };
+      case "disconnected":
+        return { label: "Disconnected (retrying…)", color: "#f44336" };
+      default:
+        return { label: s, color: "#888888" };
+    }
+  };
+
+  const statusInfo = formatStatus(status);
+
   return (
     <header
       style={{
@@ -116,11 +131,11 @@ export const Header: React.FC<HeaderProps> = ({
               width: "8px",
               height: "8px",
               borderRadius: "50%",
-              backgroundColor: status === "connected" ? "#4caf50" : "#ff9800",
+              backgroundColor: statusInfo.color,
               display: "inline-block",
             }}
           />
-          <span>{status}</span>
+          <span data-testid="header-status-text">{statusInfo.label}</span>
         </div>
       </div>
     </header>

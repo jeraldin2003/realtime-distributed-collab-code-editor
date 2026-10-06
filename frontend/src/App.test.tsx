@@ -88,7 +88,7 @@ describe("Header component", () => {
     );
     expect(screen.getByText("Collab Editor")).toBeInTheDocument();
     expect(screen.getByText(FILE_NAME)).toBeInTheDocument();
-    expect(screen.getByText("connected")).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("2 online")).toBeInTheDocument();
     expect(screen.getByText("Swift Fox")).toBeInTheDocument();
     expect(screen.getByText("Calm Panda")).toBeInTheDocument();
