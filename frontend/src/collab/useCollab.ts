@@ -59,6 +59,10 @@ export function useCollab(
     });
 
     providerRef.current = provider;
+    // When websocketProvider is supplied externally, manageSocket=false and
+    // attach() is never called automatically. Call it manually so the provider
+    // receives socket events (status, connect, synced, etc.).
+    provider.attach();
     const awareness = provider.awareness as Awareness;
 
     // Set the initial state synchronously so the Editor renders immediately.
@@ -73,7 +77,8 @@ export function useCollab(
     return () => {
       active = false;
       providerRef.current = null;
-      // Destroy provider (detaches from shared socket) but NOT the socket itself.
+      provider.detach();
+      // Destroy provider (removes listeners, clears intervals) but NOT the socket.
       provider.destroy();
       ydoc.destroy();
       stateRef.current = null;

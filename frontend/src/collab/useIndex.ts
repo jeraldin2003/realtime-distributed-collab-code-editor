@@ -130,6 +130,10 @@ export function useIndex(): IndexState | null {
     });
 
     providerRef.current = provider;
+    // When websocketProvider is supplied externally, manageSocket=false and
+    // attach() is never called automatically. Call it manually so the provider
+    // registers its event listeners on the shared socket (status, connect, etc.).
+    provider.attach();
     const awareness = provider.awareness as Awareness;
 
     // Set local identity in awareness
@@ -165,6 +169,7 @@ export function useIndex(): IndexState | null {
       active = false;
       providerRef.current = null;
       filesMap.unobserve(handleFilesChange);
+      provider.detach();
       provider.destroy();
       ydoc.destroy();
       wsProvider.destroy();

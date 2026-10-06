@@ -75,6 +75,8 @@ vi.mock("@hocuspocus/provider", () => {
       onStatus?.({ status: WebSocketStatus.Connecting });
     }
 
+    attach() {}
+    detach() {}
     destroy() {}
   }
 
