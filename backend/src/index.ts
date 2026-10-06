@@ -1,3 +1,12 @@
+import { createServer } from "./server.js";
 import { PORT } from "./config.js";
 
-console.log(`backend up on port ${PORT}`);
+async function main() {
+  const { port } = await createServer({ port: PORT, quiet: false });
+  console.log(`backend up on port ${port}`);
+}
+
+main().catch((err) => {
+  console.error("Failed to start backend server:", err);
+  process.exit(1);
+});

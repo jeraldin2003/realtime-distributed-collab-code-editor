@@ -10,16 +10,23 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 
 - [P1-S0] Scaffolded backend with Node LTS, TypeScript strict, tsx dev runner, and Vitest.
 - [P1-S0] Scaffolded frontend with Vite React + TypeScript template, Vitest + jsdom, and ESLint flat config.
+- [P1-S1] Use Hocuspocus onRequest hook for GET /health endpoint with CORS headers; throw null to bypass default welcome message.
+- [P1-S1] Enforce doc name in onConnect hook by throwing Error, triggering permission-denied response.
 
 ## Dependency versions (fill in at P1-S0)
 ### Backend
 - `@eslint/js`: 10.0.1
+- `@hocuspocus/provider`: 4.7.0
+- `@hocuspocus/server`: 4.7.0
 - `@types/node`: 26.6.4
+- `@types/ws`: 8.18.2
 - `eslint`: 10.12.0
 - `tsx`: 4.23.15
 - `typescript`: 6.0.3
 - `typescript-eslint`: 8.71.1
 - `vitest`: 5.0.3
+- `ws`: 8.22.0
+- `yjs`: 13.6.33
 
 ### Frontend
 - `react`: 19.3.0
