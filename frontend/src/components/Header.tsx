@@ -4,13 +4,14 @@ import { FILE_NAME } from "../config.js";
 export interface HeaderProps {
   appName?: string;
   fileName?: string;
-  statusText?: string;
+  /** Raw WebSocketStatus string from the provider (e.g. "connecting", "connected", "disconnected"). */
+  status?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   appName = "Collab Editor",
   fileName = FILE_NAME,
-  statusText = "Local Mode",
+  status = "connecting",
 }) => {
   return (
     <header
@@ -50,7 +51,8 @@ export const Header: React.FC<HeaderProps> = ({
             display: "inline-block",
           }}
         />
-        <span>{statusText}</span>
+        {/* Raw provider status string — polished UX comes in P1-S7 */}
+        <span>{status}</span>
       </div>
     </header>
   );

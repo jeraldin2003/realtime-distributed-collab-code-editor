@@ -1,25 +1,34 @@
+/**
+ * Editor — Monaco editor bound to a Yjs Y.Text via y-monaco.
+ *
+ * The binding owns the document content; never set editor value manually.
+ * Destroy order on unmount: binding first, then provider (handled by caller).
+ */
 import React, { useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
+import * as Y from "yjs";
+import { MonacoBinding } from "y-monaco";
+import { Awareness } from "y-protocols/awareness";
 import { LANGUAGE } from "../config.js";
 import "../monaco-workers.js";
 
 export interface EditorProps {
-  initialValue?: string;
-  onMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
+  ytext: Y.Text;
+  awareness: Awareness;
 }
 
-export const Editor: React.FC<EditorProps> = ({
-  initialValue = "// Welcome to Collab Editor\nconst greeting: string = 'Hello, real-time world!';\nconsole.log(greeting);\n",
-  onMount,
-}) => {
+export const Editor: React.FC<EditorProps> = ({ ytext, awareness }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Keep refs so the cleanup closure always sees the latest instances even
+  // after React re-renders between mount and unmount.
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const bindingRef = useRef<MonacoBinding | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const editor = monaco.editor.create(containerRef.current, {
-      value: initialValue,
+      // Do NOT pass `value` — the MonacoBinding owns the content.
       language: LANGUAGE,
       theme: "vs-dark",
       minimap: { enabled: false },
@@ -30,21 +39,32 @@ export const Editor: React.FC<EditorProps> = ({
       scrollBeyondLastLine: false,
       readOnly: false,
     });
-
     editorRef.current = editor;
-    if (onMount) {
-      onMount(editor);
+
+    const model = editor.getModel();
+    if (model) {
+      // MonacoBinding(ytext, monacoModel, editors?, awareness?)
+      const binding = new MonacoBinding(
+        ytext,
+        model,
+        new Set([editor]),
+        awareness,
+      );
+      bindingRef.current = binding;
     }
 
     return () => {
+      // Destroy binding before the editor so y-monaco can clean up its
+      // model observers and decorations cleanly.
+      if (bindingRef.current) {
+        bindingRef.current.destroy();
+        bindingRef.current = null;
+      }
       editor.dispose();
       editorRef.current = null;
     };
-    // Editor is created once and disposed on unmount; intentionally ignoring
-    // initialValue and onMount in the dep array — re-creating on every prop change
-    // would break the y-monaco binding we add in P1-S4.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // create once; ytext/awareness are stable refs from useCollab
 
   return (
     <div

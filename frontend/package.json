@@ -11,9 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@hocuspocus/provider": "^4.7.0",
     "monaco-editor": "^0.57.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "y-monaco": "^0.1.6",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

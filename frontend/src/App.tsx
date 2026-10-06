@@ -1,7 +1,10 @@
 import { Header } from "./components/Header.js";
 import { Editor } from "./components/Editor.js";
+import { useCollab } from "./collab/useCollab.js";
 
 export function App() {
+  const collab = useCollab();
+
   return (
     <div
       style={{
@@ -13,7 +16,7 @@ export function App() {
         overflow: "hidden",
       }}
     >
-      <Header />
+      <Header status={collab?.status} />
       <main
         style={{
           flex: 1,
@@ -22,7 +25,14 @@ export function App() {
           position: "relative",
         }}
       >
-        <Editor />
+        {/*
+          Render the Editor only once the collab state is ready so that
+          ytext and awareness are stable non-null values from the first mount.
+          This also avoids flashing the editor before the provider exists.
+        */}
+        {collab && (
+          <Editor ytext={collab.ytext} awareness={collab.awareness} />
+        )}
       </main>
     </div>
   );
