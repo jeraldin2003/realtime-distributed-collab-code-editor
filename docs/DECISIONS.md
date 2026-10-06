@@ -53,3 +53,8 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [hotfix] `monaco-editor` pinned to `0.55.1` (exact) — v0.56+ changed the ESM exports map, breaking deep imports like `monaco-editor/esm/vs/editor/editor.worker` under Vite 8 / Rolldown. Do NOT upgrade `monaco-editor` without verifying deep-import compatibility with the installed Vite version.
 - [P1-S6] In header `N / MAX online`, N is derived from awareness presence (client-perceived peers) while MAX is fetched from `/status`. Rejection in Hocuspocus triggers `authenticationFailed` with `permission-denied`, which disconnects the provider and presents `RoomFull` with a manual `Try again` button.
 
+- [P2-S1] `parseDocName` is the single gate for doc name validation in `onConnect`; validates against `FILE_ID_REGEX = /^[a-z0-9-]{1,40}$/` per ARCHITECTURE.md.
+- [P2-S1] File ids generated with `crypto.randomUUID()` (Node 14.17+ built-in, no new dep); UUID format `[0-9a-f-]` already satisfies FILE_ID_REGEX.
+- [P2-S1] `ensureDefaultIndex` is idempotent and called in `onLoadDocument` for `project:index`; seeding `file:main` retains the existing Set-guard.
+- [P2-S1] Cap stays on `file:main` connections only; moves to `project:index` in P2-S2.
+- [P2-S1] `listFiles` sorts by name then id for stable, deterministic order across clients (concurrent same-name creates produce two entries, allowed per spec).

@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S1
-**Last completed step:** P1-S8
-**Repo state:** Phase 1 complete and hardened; git tag phase-1-complete
+**Current step:** P2-S2
+**Last completed step:** P2-S1
+**Repo state:** Phase 1 complete; P2-S1 backend file model and doc name rules done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -18,7 +18,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P1-S6 | done | 678f109 | Server-enforced user cap with room-full UI |
 | P1-S7 | done | 77a4fd8 | Connection status and reconnect UX |
 | P1-S8 | done | 9f9c13e | Phase 1 hardening, stress test, and docs (tag phase-1-complete) |
-| P2-S1 | todo | | |
+| P2-S1 | done | 3789c1a | Backend file model: docNames, fileIndex, server doc-name validation |
 | P2-S2 | todo | | |
 | P2-S3 | todo | | |
 | P2-S4 | todo | | |
@@ -31,4 +31,7 @@ The agent updates this file at the end of every step. It is the memory between s
 (none)
 
 ## Notes for next session
-(none)
+- P2-S1 added: `docNames.ts` (parseDocName, fileDocName, FILE_ID_REGEX), `fileIndex.ts` (ensureDefaultIndex, createFile, renameFile, deleteFile, listFiles), new constants in `config.ts`.
+- Server now accepts `project:index` and `file:<id>` only; rejects everything else. `project:index` seeded with default project (main → main.ts). `file:main` still seeded with STARTER.
+- Cap still on `file:main` connections — P2-S2 moves it to `project:index`.
+- frontend unchanged; Phase 1 UI fully working.
