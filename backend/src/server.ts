@@ -1,5 +1,5 @@
 import { Server } from "@hocuspocus/server";
-import { DOC_NAME, ALLOWED_ORIGIN } from "./config.js";
+import { DOC_NAME, ALLOWED_ORIGIN, TEXT_KEY, STARTER } from "./config.js";
 
 export interface CreateServerOptions {
   port?: number;
@@ -7,6 +7,8 @@ export interface CreateServerOptions {
 }
 
 export async function createServer(options: CreateServerOptions = {}) {
+  const seededDocuments = new Set<string>();
+
   const server = new Server({
     port: options.port ?? 1234,
     quiet: options.quiet ?? true,
@@ -29,6 +31,16 @@ export async function createServer(options: CreateServerOptions = {}) {
         response.end(JSON.stringify({ ok: true }));
         throw null; // Prevent default Welcome message
       }
+    },
+    async onLoadDocument(data) {
+      if (data.documentName === DOC_NAME && !seededDocuments.has(data.documentName)) {
+        const ytext = data.document.getText(TEXT_KEY);
+        if (ytext.length === 0) {
+          ytext.insert(0, STARTER);
+          seededDocuments.add(data.documentName);
+        }
+      }
+      return data.document;
     },
     async onConnect(data) {
       const { documentName, socketId } = data;

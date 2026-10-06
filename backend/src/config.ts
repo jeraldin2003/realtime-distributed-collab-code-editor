@@ -6,3 +6,14 @@ export const DOC_NAME: string = "file:main";
 export const FILE_NAME: string = "main.ts";
 export const LANGUAGE: string = "typescript";
 export const TEXT_KEY: string = "content";
+
+export const STARTER: string = `// Welcome to the real-time collaborative code editor!
+// Edits made here will sync live across all connected clients.
+
+function greet(name: string): string {
+  return \`Hello, \${name}!\`;
+}
+
+console.log(greet("World"));
+`;
+
