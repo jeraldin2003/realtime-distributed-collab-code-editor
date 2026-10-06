@@ -45,3 +45,8 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - `eslint-plugin-react-refresh`: 0.5.7
 - `typescript`: 6.0.3
 - `typescript-eslint`: 8.71.1
+- [P1-S3] `HocuspocusProvider` with inline `url` string (not `HocuspocusProviderWebsocket`) — P1 only needs one connection; shared WS is for P2.
+- [P1-S3] Status tracked via `onStatus` callback into React state (not `provider.status` which is on the separate `HocuspocusProviderWebsocket`).
+- [P1-S3] `providerRef` object used in `useCollab` to avoid TDZ when mock calls `onStatus` synchronously from the constructor.
+- [P1-S3] `Editor` renders only when `collab` is non-null to guarantee `ytext`/`awareness` are stable before `MonacoBinding` is created.
+- [P1-S3] New frontend packages: `yjs` 13.6.33, `@hocuspocus/provider` 4.7.0, `y-monaco` 0.1.6.
