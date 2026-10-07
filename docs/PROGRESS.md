@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S3
-**Last completed step:** P2-S2
-**Repo state:** Phase 2 in progress; index sync, file list sidebar, and cap on index doc done
+**Current step:** P2-S4
+**Last completed step:** P2-S3
+**Repo state:** Phase 2 in progress; file switching and editor rebinding done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -20,7 +20,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P1-S8 | done | 9f9c13e | Phase 1 hardening, stress test, and docs (tag phase-1-complete) |
 | P2-S1 | done | 3789c1a | Backend file model: docNames, fileIndex, server doc-name validation |
 | P2-S2 | done | e5f5a26 | Index sync, file list sidebar, cap moved to project:index |
-| P2-S3 | todo | | |
+| P2-S3 | done | d475a5f | Switch files, rebind editor, language detection |
 | P2-S4 | todo | | |
 | P2-S5 | todo | | |
 | P2-S6 | todo | | |
@@ -31,7 +31,7 @@ The agent updates this file at the end of every step. It is the memory between s
 (none)
 
 ## Notes for next session
-- P2-S2 added: `useIndex.ts` (shared HocuspocusProviderWebsocket + index provider, file list, room-full, retry), `useCollab.ts` now accepts `websocketProvider` param and no longer manages cap/room-full logic, `FileList.tsx`, `Sidebar.tsx`.
-- App.tsx wires `useIndex` → `useCollab(websocketProvider)`; presence and status come from index provider; sidebar always shows; active file hardcoded to "main".
-- Cap is now counted on `project:index` connections only. `file:<id>` connections not counted.
-- TDZ fix in useCollab.ts: providerRef pattern (same as P1-S3) needed because onStatus is called synchronously during HocuspocusProvider construction in tests.
+- P2-S3 added: `languages.ts` (extension→Monaco language id map), `useFileDoc.ts` (file provider per fileId, attach() required, identity not in deps), `Editor.tsx` now has two effects (create-once + rebind-on-ytext), `FileList.tsx`/`Sidebar.tsx` have onFileClick, `App.tsx` has activeFileId state.
+- `useCollab.ts` is retained but no longer used in App (superseded by `useFileDoc`).
+- Infinite re-render trap: `getOrCreateIdentity()` returns a new object each render; do NOT put `identity` in `useFileDoc` deps. `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the deps array.
+- `provider.attach()` must be called manually when `websocketProvider` is supplied externally (same rule as P2-S2).

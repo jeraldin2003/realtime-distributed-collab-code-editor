@@ -64,3 +64,8 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S2] `providerRef` pattern reused in `useCollab` to avoid TDZ when mock calls `onStatus` synchronously during construction (same root cause as P1-S3).
 - [P2-S2] Presence (`usePresence`) reads from index provider awareness; file provider awareness unused for presence in this step.
 - [P2-S2] Active file is hardcoded to "main" in App.tsx for P2-S2; switching wired in P2-S3.
+- [P2-S3] `useFileDoc` supersedes `useCollab` in App; `useCollab` is retained but unused.
+- [P2-S3] `Editor` uses two `useEffect`s: one creates Monaco once (`[]` deps), one rebinds MonacoBinding on `[ytext, awareness, language]` — avoids remounting the DOM on file switch (no flicker).
+- [P2-S3] `monaco.editor.setModelLanguage(model, languageId)` verified in `standaloneEditor.js` ESM source.
+- [P2-S3] `identity` must NOT be in `useFileDoc` deps — `getOrCreateIdentity()` returns a new object on every App render, causing an infinite effect loop. Suppressed with `eslint-disable-next-line react-hooks/exhaustive-deps`.
+- [P2-S3] `getLanguageForFile` defaults to `"plaintext"` for unknown/absent extensions.
