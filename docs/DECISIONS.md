@@ -80,3 +80,6 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S5] Orphaned file docs stay in server memory when deleted (known limitation per ARCHITECTURE.md). Empty state lets user recover by creating a new file.
 - [P2-S6] Index awareness state carries `activeFileId` alongside `user` for each connected client. `usePresence` derives `fileUsers` grouping (`Record<string, PresenceUser[]>`).
 - [P2-S6] `FileList` renders colored presence dots (up to 3, then `+N` badge) representing other users actively viewing each file, with user names in tooltip. Local user is excluded from dots. Header user count remains total online users from index awareness.
+- [P2-S7] Nested folders use existing `type: "folder"` and `parentId` on index entries with max depth limit of 5 (`MAX_FOLDER_DEPTH = 5`). Name uniqueness is enforced among siblings sharing the same `parentId`.
+- [P2-S7] Recursive folder deletion removes all descendants in one `doc.transact()`. Deleting a folder containing an open file naturally triggers P2-S5's deleted-while-open handling.
+- [P2-S7] Folder expand/collapse state is kept strictly local per-tab via `expandedFolderIds` React state.

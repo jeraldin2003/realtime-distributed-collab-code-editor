@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S7
-**Last completed step:** P2-S6
-**Repo state:** Phase 2 in progress; per-file presence in sidebar done
+**Current step:** P2-S8
+**Last completed step:** P2-S7
+**Repo state:** Phase 2 in progress; nested folders with tree view and recursive delete done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -24,16 +24,16 @@ The agent updates this file at the end of every step. It is the memory between s
 | P2-S4 | done | bb35cb8 | Create files with live sync; NewFileInput, fileIndex helpers |
 | P2-S5 | done | 3283edc | Rename & delete with inline UI and deleted-while-open handling |
 | P2-S6 | done | b417a90 | Per-file presence in sidebar with colored dots |
-| P2-S7 | optional | | |
+| P2-S7 | done | pending | Nested folders with tree view, depth limit 5, and recursive delete |
 | P2-S8 | todo | | |
 
 ## Blockers
 (none)
 
 ## Notes for next session
-- P2-S6 added:
-  - `activeFileId` published to index awareness alongside `user` in App.tsx.
-  - `usePresence` derives `fileUsers: Record<string, PresenceUser[]>`.
-  - `FileList` displays presence dots (up to 3 and `+N` badge) for peers viewing each file, with names in tooltip.
-  - Header user count remains total online users on the index doc.
+- P2-S7 added:
+  - `createFolder` and recursive `deleteFile` (using `getDescendantIds`) in both frontend and backend `fileIndex.ts`.
+  - Nested folder validation in `validateFileName`: sibling uniqueness by `parentId`, and `MAX_FOLDER_DEPTH = 5`.
+  - Tree-based folder rendering with expand/collapse (local state) and action buttons (+📄, +📁) in `FileList.tsx`.
+  - Recursive folder deletion removes all nested files, cleanly activating P2-S5's deleted-while-open handling.
 

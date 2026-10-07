@@ -7,6 +7,7 @@ import { FileList } from "./components/FileList.js";
 import { NewFileInput } from "./components/NewFileInput.js";
 import { FILE_NAME } from "./config.js";
 import { getLanguageForFile } from "./languages.js";
+import type { FileEntry } from "./collab/useIndex.js";
 
 // monaco-workers.ts uses Vite-specific ?worker imports that only work in the
 // browser build. Mock the entire module so Vitest (jsdom) can skip it.
@@ -297,6 +298,29 @@ describe("FileList component", () => {
     expect(screen.getByTestId("presence-overflow-main")).toHaveTextContent("+1");
     // Local user (id 99) should be excluded from presence dots
     expect(screen.queryByTestId("presence-dot-main-99")).not.toBeInTheDocument();
+  });
+
+  it("renders nested folders and expands/collapses on click", () => {
+    const files: FileEntry[] = [
+      { id: "src", name: "src", type: "folder", parentId: null },
+      { id: "app-ts", name: "App.tsx", type: "file", parentId: "src" },
+      { id: "root-file", name: "index.html", type: "file", parentId: null },
+    ];
+
+    render(<FileList files={files} />);
+
+    // Initially folder is collapsed, nested file is not rendered
+    expect(screen.getByText("src")).toBeInTheDocument();
+    expect(screen.getByText("index.html")).toBeInTheDocument();
+    expect(screen.queryByText("App.tsx")).not.toBeInTheDocument();
+
+    // Click folder to expand
+    fireEvent.click(screen.getByTestId("file-item-src"));
+    expect(screen.getByText("App.tsx")).toBeInTheDocument();
+
+    // Click again to collapse
+    fireEvent.click(screen.getByTestId("file-item-src"));
+    expect(screen.queryByText("App.tsx")).not.toBeInTheDocument();
   });
 });
 

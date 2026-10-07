@@ -68,9 +68,29 @@ export function createFile(
   const files = getFilesMap(doc);
   doc.transact(() => {
     const entry = new Y.Map<unknown>();
-    entry.set("name", opts.name);
+    entry.set("name", opts.name.trim());
     entry.set("parentId", opts.parentId ?? null);
     entry.set("type", "file");
+    files.set(id, entry);
+  });
+  return id;
+}
+
+/**
+ * Create a new folder entry in the index.
+ * Returns the generated folder id.
+ */
+export function createFolder(
+  doc: Y.Doc,
+  opts: { name: string; parentId?: string | null }
+): string {
+  const id = generateId();
+  const files = getFilesMap(doc);
+  doc.transact(() => {
+    const entry = new Y.Map<unknown>();
+    entry.set("name", opts.name.trim());
+    entry.set("parentId", opts.parentId ?? null);
+    entry.set("type", "folder");
     files.set(id, entry);
   });
   return id;
@@ -86,22 +106,42 @@ export function renameFile(doc: Y.Doc, id: string, name: string): void {
     return;
   }
   doc.transact(() => {
-    entry.set("name", name);
+    entry.set("name", name.trim());
   });
 }
 
 /**
- * Delete a file entry from the index. No-op if the id does not exist.
- * Does not delete the file:‹id› content doc (orphan docs remain in server memory,
- * per the known limitation in docs/ARCHITECTURE.md).
+ * Find all descendant IDs of a given folder ID.
+ */
+export function getDescendantIds(filesMap: Y.Map<Y.Map<unknown>>, parentId: string): string[] {
+  const descendants: string[] = [];
+  const queue = [parentId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const [id, entry] of filesMap.entries()) {
+      if (entry.get("parentId") === current) {
+        descendants.push(id);
+        queue.push(id);
+      }
+    }
+  }
+  return descendants;
+}
+
+/**
+ * Delete a file or folder entry from the index.
+ * If the entry is a folder, recursively deletes all descendants.
  */
 export function deleteFile(doc: Y.Doc, id: string): void {
   const files = getFilesMap(doc);
   if (!files.has(id)) {
     return;
   }
+  const toDelete = [id, ...getDescendantIds(files, id)];
   doc.transact(() => {
-    files.delete(id);
+    for (const fileId of toDelete) {
+      files.delete(fileId);
+    }
   });
 }
 

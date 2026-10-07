@@ -27,26 +27,54 @@ export type ValidationError =
   | "too_long"
   | "invalid_chars"
   | "duplicate_name"
-  | "max_files";
+  | "max_files"
+  | "max_depth";
+
+export const MAX_FOLDER_DEPTH = 5;
+
+/** Calculate depth of a parent folder. Root is depth 0. */
+export function getFolderDepth(
+  parentId: string | null,
+  existingFiles: FileEntry[]
+): number {
+  let depth = 0;
+  let currentId = parentId;
+  const fileMap = new Map(existingFiles.map((f) => [f.id, f]));
+  while (currentId) {
+    depth++;
+    const parent = fileMap.get(currentId);
+    if (!parent) break;
+    currentId = parent.parentId;
+    if (depth > 20) break; // cycle guard
+  }
+  return depth;
+}
 
 /**
- * Validate a proposed file name against the current file list.
+ * Validate a proposed file/folder name against the current file list.
  * Returns null if valid, or a ValidationError string.
- * excludeId allows renaming a file without colliding with itself.
+ * excludeId allows renaming without colliding with itself.
+ * parentId specifies the target parent directory (for sibling uniqueness and max depth).
  */
 export function validateFileName(
   name: string,
   existingFiles: FileEntry[],
-  excludeId?: string
+  excludeId?: string,
+  parentId: string | null = null
 ): ValidationError | null {
   const trimmed = name.trim();
   if (trimmed.length === 0) return "empty";
   if (trimmed.length > 100) return "too_long";
   if (trimmed.includes("/") || trimmed.includes("\\")) return "invalid_chars";
   if (!excludeId && existingFiles.length >= MAX_FILES) return "max_files";
-  // Duplicate check: same trimmed name at the same level (parentId = null for flat files)
+  if (getFolderDepth(parentId, existingFiles) >= MAX_FOLDER_DEPTH) return "max_depth";
+
+  // Duplicate check: same trimmed name among siblings at the SAME parentId level
   const duplicate = existingFiles.some(
-    (f) => f.id !== excludeId && f.name.trim().toLowerCase() === trimmed.toLowerCase()
+    (f) =>
+      f.id !== excludeId &&
+      (f.parentId ?? null) === (parentId ?? null) &&
+      f.name.trim().toLowerCase() === trimmed.toLowerCase()
   );
   if (duplicate) return "duplicate_name";
   return null;
@@ -57,8 +85,9 @@ export const VALIDATION_MESSAGES: Record<ValidationError, string> = {
   empty: "File name cannot be empty.",
   too_long: "File name must be 100 characters or fewer.",
   invalid_chars: 'File name cannot contain "/" or "\\".',
-  duplicate_name: "A file with that name already exists.",
+  duplicate_name: "A file with that name already exists in this folder.",
   max_files: `Cannot create more than ${MAX_FILES} files.`,
+  max_depth: `Cannot nest deeper than ${MAX_FOLDER_DEPTH} levels.`,
 };
 
 /** Generate a random file id matching FILE_ID_REGEX (browser crypto, no dep). */
@@ -95,6 +124,26 @@ export function createFile(
 }
 
 /**
+ * Create a new folder entry in the index Y.Doc.
+ * Returns the generated folder id.
+ */
+export function createFolder(
+  doc: Y.Doc,
+  opts: { name: string; parentId?: string | null }
+): string {
+  const id = generateId();
+  const files = getFilesMap(doc);
+  doc.transact(() => {
+    const entry = new Y.Map<unknown>();
+    entry.set("name", opts.name.trim());
+    entry.set("parentId", opts.parentId ?? null);
+    entry.set("type", "folder");
+    files.set(id, entry);
+  });
+  return id;
+}
+
+/**
  * Rename a file entry. No-op if the id does not exist.
  */
 export function renameFile(doc: Y.Doc, id: string, name: string): void {
@@ -109,15 +158,36 @@ export function renameFile(doc: Y.Doc, id: string, name: string): void {
 }
 
 /**
- * Delete a file entry from the index. No-op if the id does not exist.
+ * Find all descendant IDs of a given folder ID.
+ */
+export function getDescendantIds(filesMap: Y.Map<Y.Map<unknown>>, parentId: string): string[] {
+  const descendants: string[] = [];
+  const queue = [parentId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const [id, entry] of filesMap.entries()) {
+      if (entry.get("parentId") === current) {
+        descendants.push(id);
+        queue.push(id);
+      }
+    }
+  }
+  return descendants;
+}
+
+/**
+ * Delete a file entry from the index. If it is a folder, recursively deletes all descendants.
  */
 export function deleteFile(doc: Y.Doc, id: string): void {
   const files = getFilesMap(doc);
   if (!files.has(id)) {
     return;
   }
+  const toDelete = [id, ...getDescendantIds(files, id)];
   doc.transact(() => {
-    files.delete(id);
+    for (const fileId of toDelete) {
+      files.delete(fileId);
+    }
   });
 }
 

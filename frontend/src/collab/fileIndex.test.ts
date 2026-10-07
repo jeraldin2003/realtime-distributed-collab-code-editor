@@ -5,6 +5,7 @@ import {
   validateFileName,
   VALIDATION_MESSAGES,
   createFile,
+  createFolder,
   renameFile,
   deleteFile,
   listFiles,
@@ -271,5 +272,57 @@ describe("deleteFile", () => {
     expect(listFiles(doc1).map((f) => f.name)).toEqual(["new.ts"]);
     expect(listFiles(doc2).map((f) => f.name)).toEqual(["new.ts"]);
   });
+
+  it("recursively deletes all descendants when deleting a folder", () => {
+    const doc = new Y.Doc();
+    const folder1 = createFolder(doc, { name: "src" });
+    const subfolder = createFolder(doc, { name: "components", parentId: folder1 });
+    createFile(doc, { name: "Button.tsx", parentId: subfolder });
+    const fileInRoot = createFile(doc, { name: "index.ts" });
+
+    expect(listFiles(doc)).toHaveLength(4);
+
+    deleteFile(doc, folder1);
+
+    const remaining = listFiles(doc);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(fileInRoot);
+    expect(remaining[0].name).toBe("index.ts");
+  });
 });
+
+// ─── Folders & nesting ────────────────────────────────────────────────────────
+
+describe("Folders and depth limits", () => {
+  it("enforces max depth 5", () => {
+    const files: FileEntry[] = [];
+    let currentParent: string | null = null;
+    for (let depth = 0; depth < 5; depth++) {
+      const id = `f-${depth}`;
+      files.push({ id, name: `level-${depth}`, type: "folder", parentId: currentParent });
+      currentParent = id;
+    }
+
+    // Depth 5 already reached for currentParent
+    expect(validateFileName("too-deep.ts", files, undefined, currentParent)).toBe("max_depth");
+    // Allowed in shallower folder
+    expect(validateFileName("ok.ts", files, undefined, "f-2")).toBeNull();
+  });
+
+  it("checks uniqueness per folder (same name in different folders allowed)", () => {
+    const files: FileEntry[] = [
+      { id: "root-file", name: "index.ts", type: "file", parentId: null },
+      { id: "folder-1", name: "utils", type: "folder", parentId: null },
+      { id: "nested-file", name: "index.ts", type: "file", parentId: "folder-1" },
+    ];
+
+    // Same name in folder-1 collides
+    expect(validateFileName("index.ts", files, undefined, "folder-1")).toBe("duplicate_name");
+    // Same name in root collides
+    expect(validateFileName("index.ts", files, undefined, null)).toBe("duplicate_name");
+    // Creating "helper.ts" in folder-1 is fine
+    expect(validateFileName("helper.ts", files, undefined, "folder-1")).toBeNull();
+  });
+});
+
 

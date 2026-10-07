@@ -3,6 +3,7 @@ import * as Y from "yjs";
 import {
   ensureDefaultIndex,
   createFile,
+  createFolder,
   renameFile,
   deleteFile,
   listFiles,
@@ -90,6 +91,25 @@ describe("renameFile", () => {
   });
 });
 
+describe("createFolder", () => {
+  it("creates a folder entry in the index with type folder", () => {
+    const doc = freshDoc();
+    const id = createFolder(doc, { name: "src" });
+    const files = listFiles(doc);
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatchObject({ id, name: "src", parentId: null, type: "folder" });
+  });
+
+  it("sets parentId when provided", () => {
+    const doc = freshDoc();
+    const parentId = createFolder(doc, { name: "root" });
+    const id = createFolder(doc, { name: "nested", parentId });
+    const files = listFiles(doc);
+    expect(files).toHaveLength(2);
+    expect(files.find((f) => f.id === id)).toMatchObject({ parentId });
+  });
+});
+
 describe("deleteFile", () => {
   it("removes an existing file entry", () => {
     const doc = freshDoc();
@@ -111,6 +131,22 @@ describe("deleteFile", () => {
     const files = listFiles(doc);
     expect(files).toHaveLength(1);
     expect(files[0].id).toBe(id1);
+  });
+
+  it("recursively removes all descendant files and subfolders when a folder is deleted", () => {
+    const doc = freshDoc();
+    const rootFolder = createFolder(doc, { name: "src" });
+    const subFolder = createFolder(doc, { name: "components", parentId: rootFolder });
+    createFile(doc, { name: "App.tsx", parentId: rootFolder });
+    createFile(doc, { name: "Button.tsx", parentId: subFolder });
+    const otherFile = createFile(doc, { name: "package.json", parentId: null });
+
+    expect(listFiles(doc)).toHaveLength(5);
+    deleteFile(doc, rootFolder);
+
+    const remaining = listFiles(doc);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(otherFile);
   });
 });
 

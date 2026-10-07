@@ -14,6 +14,7 @@ import { getOrCreateIdentity } from "./collab/identity.js";
 import { getLanguageForFile } from "./languages.js";
 import {
   createFile,
+  createFolder,
   renameFile,
   deleteFile,
   validateFileName,
@@ -80,19 +81,27 @@ export function App() {
     setActiveFileId(file.id);
   };
 
-  const handleCreateFile = (name: string) => {
+  const handleCreateFile = (name: string, parentId?: string | null) => {
     if (!index?.ydoc) return;
     // Validate before mutating
-    const err = validateFileName(name, index.files);
+    const err = validateFileName(name, index.files, undefined, parentId ?? null);
     if (err) return;
-    const newId = createFile(index.ydoc, { name });
+    const newId = createFile(index.ydoc, { name, parentId: parentId ?? null });
     // Auto-select the new file for the creator
     setActiveFileId(newId);
   };
 
+  const handleCreateFolder = (name: string, parentId?: string | null) => {
+    if (!index?.ydoc) return;
+    const err = validateFileName(name, index.files, undefined, parentId ?? null);
+    if (err) return;
+    createFolder(index.ydoc, { name, parentId: parentId ?? null });
+  };
+
   const handleRenameFile = (id: string, newName: string) => {
     if (!index?.ydoc) return;
-    const err = validateFileName(newName, index.files, id);
+    const existing = index.files.find((f) => f.id === id);
+    const err = validateFileName(newName, index.files, id, existing?.parentId ?? null);
     if (err) return;
     renameFile(index.ydoc, id, newName);
   };
@@ -145,6 +154,7 @@ export function App() {
             localClientId={index.awareness.clientID}
             onFileClick={handleFileClick}
             onCreateFile={handleCreateFile}
+            onCreateFolder={handleCreateFolder}
             onRenameFile={handleRenameFile}
             onDeleteFile={handleDeleteFile}
           />

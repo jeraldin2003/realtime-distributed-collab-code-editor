@@ -12,6 +12,10 @@ import type { FileEntry } from "../collab/useIndex.js";
 export interface NewFileInputProps {
   /** Existing files, used for duplicate-name and max-files checks. */
   existingFiles: FileEntry[];
+  /** Parent folder id for the new item. null = root. */
+  parentId?: string | null;
+  /** Type of entry to create. Defaults to "file". */
+  entryType?: "file" | "folder";
   /** Called with the trimmed name when the user confirms a valid name. */
   onConfirm: (name: string) => void;
   /** Called when the user cancels (Escape or clicking away with empty input). */
@@ -20,6 +24,8 @@ export interface NewFileInputProps {
 
 export const NewFileInput: React.FC<NewFileInputProps> = ({
   existingFiles,
+  parentId = null,
+  entryType = "file",
   onConfirm,
   onCancel,
 }) => {
@@ -34,7 +40,7 @@ export const NewFileInput: React.FC<NewFileInputProps> = ({
 
   const tryConfirm = (raw: string) => {
     const name = raw.trim();
-    const err = validateFileName(name, existingFiles);
+    const err = validateFileName(name, existingFiles, undefined, parentId);
     if (err) {
       setError(VALIDATION_MESSAGES[err]);
       return;
@@ -77,8 +83,8 @@ export const NewFileInput: React.FC<NewFileInputProps> = ({
         }}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        placeholder="filename.ts"
-        aria-label="New file name"
+        placeholder={entryType === "folder" ? "folder-name" : "filename.ts"}
+        aria-label={entryType === "folder" ? "New folder name" : "New file name"}
         aria-describedby={error ? "new-file-error" : undefined}
         style={{
           width: "100%",
