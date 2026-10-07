@@ -3,11 +3,17 @@ import type { FileEntry } from "../collab/useIndex.js";
 
 export interface FileListProps {
   files: FileEntry[];
-  /** The id of the currently active file (read-only in P2-S2). */
+  /** The id of the currently active file. */
   activeFileId?: string;
+  /** Called when the user clicks a file. */
+  onFileClick?: (file: FileEntry) => void;
 }
 
-export const FileList: React.FC<FileListProps> = ({ files, activeFileId }) => {
+export const FileList: React.FC<FileListProps> = ({
+  files,
+  activeFileId,
+  onFileClick,
+}) => {
   if (files.length === 0) {
     return (
       <div
@@ -40,12 +46,13 @@ export const FileList: React.FC<FileListProps> = ({ files, activeFileId }) => {
             key={file.id}
             data-testid={`file-item-${file.id}`}
             role="listitem"
+            onClick={() => onFileClick?.(file)}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "6px",
               padding: "5px 16px",
-              cursor: "default",
+              cursor: onFileClick ? "pointer" : "default",
               fontSize: "13px",
               fontFamily: "monospace",
               color: isActive ? "#ffffff" : "#cccccc",
@@ -54,7 +61,7 @@ export const FileList: React.FC<FileListProps> = ({ files, activeFileId }) => {
               userSelect: "none",
             }}
           >
-            {/* File icon */}
+            {/* File icon — simplified badge showing language hint */}
             <span
               aria-hidden="true"
               style={{ color: "#9cdcfe", fontSize: "11px", flexShrink: 0 }}

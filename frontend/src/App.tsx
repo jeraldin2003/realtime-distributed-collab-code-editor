@@ -1,22 +1,42 @@
+import { useState } from "react";
 import { Header } from "./components/Header.js";
 import { Editor } from "./components/Editor.js";
 import { RoomFull } from "./components/RoomFull.js";
 import { OfflineBanner } from "./components/OfflineBanner.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { useIndex } from "./collab/useIndex.js";
-import { useCollab } from "./collab/useCollab.js";
+import { useFileDoc } from "./collab/useFileDoc.js";
 import { usePresence } from "./collab/usePresence.js";
 import { useStatus } from "./collab/useStatus.js";
-
-// Active file is always "main" in P2-S2; switching is wired in P2-S3.
-const ACTIVE_FILE_ID = "main";
+import { getOrCreateIdentity } from "./collab/identity.js";
+import { getLanguageForFile } from "./languages.js";
+import type { FileEntry } from "./collab/useIndex.js";
 
 export function App() {
+  const [activeFileId, setActiveFileId] = useState<string>("main");
+
   const index = useIndex();
-  const collab = useCollab(index?.websocketProvider);
-  // Presence is derived from the index provider's awareness (not the file provider's).
+  // Identity is stable (from sessionStorage) — safe to read outside an effect.
+  const identity = getOrCreateIdentity();
+  const fileDoc = useFileDoc(
+    activeFileId,
+    index?.websocketProvider ?? null,
+    identity
+  );
+  // Presence derived from index provider awareness (counts all connected users).
   const presence = usePresence(index?.awareness ?? null);
   const statusData = useStatus();
+
+  // Find the active file's name from the index for header + language detection.
+  const activeFile: FileEntry | undefined = index?.files.find(
+    (f) => f.id === activeFileId
+  );
+  const activeFileName = activeFile?.name ?? `${activeFileId}`;
+  const language = getLanguageForFile(activeFileName);
+
+  const handleFileClick = (file: FileEntry) => {
+    setActiveFileId(file.id);
+  };
 
   return (
     <div
@@ -30,6 +50,7 @@ export function App() {
       }}
     >
       <Header
+        fileName={activeFileName}
         status={index?.status}
         onlineCount={presence.onlineCount}
         maxUsers={statusData?.maxUsers}
@@ -51,7 +72,11 @@ export function App() {
       >
         {/* Left sidebar — file list */}
         {index && !index.isRoomFull && (
-          <Sidebar files={index.files} activeFileId={ACTIVE_FILE_ID} />
+          <Sidebar
+            files={index.files}
+            activeFileId={activeFileId}
+            onFileClick={handleFileClick}
+          />
         )}
 
         {/* Main content area */}
@@ -65,8 +90,12 @@ export function App() {
           {index?.isRoomFull ? (
             <RoomFull onRetry={index.retry} />
           ) : (
-            collab && (
-              <Editor ytext={collab.ytext} awareness={collab.awareness} />
+            fileDoc && (
+              <Editor
+                ytext={fileDoc.ytext}
+                awareness={fileDoc.awareness}
+                language={language}
+              />
             )
           )}
         </main>

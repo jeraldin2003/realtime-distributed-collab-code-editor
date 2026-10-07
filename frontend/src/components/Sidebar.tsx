@@ -5,9 +5,14 @@ import type { FileEntry } from "../collab/useIndex.js";
 export interface SidebarProps {
   files: FileEntry[];
   activeFileId?: string;
+  onFileClick?: (file: FileEntry) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ files, activeFileId }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  files,
+  activeFileId,
+  onFileClick,
+}) => {
   return (
     <aside
       data-testid="sidebar"
@@ -37,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ files, activeFileId }) => {
         Files
       </div>
 
-      <FileList files={files} activeFileId={activeFileId} />
+      <FileList files={files} activeFileId={activeFileId} onFileClick={onFileClick} />
     </aside>
   );
 };

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import App from "./App.js";
 import { Header } from "./components/Header.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { FileList } from "./components/FileList.js";
 import { FILE_NAME } from "./config.js";
+import { getLanguageForFile } from "./languages.js";
 
 // monaco-workers.ts uses Vite-specific ?worker imports that only work in the
 // browser build. Mock the entire module so Vitest (jsdom) can skip it.
@@ -27,6 +28,7 @@ vi.mock("monaco-editor", () => ({
       setValue: vi.fn(),
       onDidChangeCursorSelection: vi.fn(() => ({ dispose: vi.fn() })),
     })),
+    setModelLanguage: vi.fn(),
   },
 }));
 
@@ -39,7 +41,6 @@ vi.mock("y-monaco", () => {
 });
 
 // Mock @hocuspocus/provider so no real WebSocket is opened in tests.
-// Now includes HocuspocusProviderWebsocket for the shared socket.
 vi.mock("@hocuspocus/provider", () => {
   const WebSocketStatus = {
     Connecting: "connecting",
@@ -47,7 +48,6 @@ vi.mock("@hocuspocus/provider", () => {
     Disconnected: "disconnected",
   };
 
-  // Shared mock websocket — just needs to exist as an object reference.
   class HocuspocusProviderWebsocket {
     connect() {}
     disconnect() {}
@@ -71,7 +71,6 @@ vi.mock("@hocuspocus/provider", () => {
       onStatus?: (d: { status: string }) => void;
       [key: string]: unknown;
     }) {
-      // Immediately call onStatus so hooks' state becomes non-null.
       onStatus?.({ status: WebSocketStatus.Connecting });
     }
 
@@ -87,10 +86,9 @@ vi.mock("@hocuspocus/provider", () => {
 vi.mock("yjs", () => {
   class Doc {
     getText() {
-      return {};
+      return { toString: () => "" };
     }
     getMap() {
-      // Return a minimal Y.Map-like with empty entries and observe/unobserve.
       return {
         entries: () => [],
         observe: vi.fn(),
@@ -101,6 +99,30 @@ vi.mock("yjs", () => {
     destroy() {}
   }
   return { Doc };
+});
+
+describe("languages", () => {
+  it("returns typescript for .ts files", () => {
+    expect(getLanguageForFile("main.ts")).toBe("typescript");
+  });
+  it("returns typescript for .tsx files", () => {
+    expect(getLanguageForFile("App.tsx")).toBe("typescript");
+  });
+  it("returns javascript for .js files", () => {
+    expect(getLanguageForFile("index.js")).toBe("javascript");
+  });
+  it("returns json for .json files", () => {
+    expect(getLanguageForFile("package.json")).toBe("json");
+  });
+  it("returns markdown for .md files", () => {
+    expect(getLanguageForFile("README.md")).toBe("markdown");
+  });
+  it("returns plaintext for unknown extensions", () => {
+    expect(getLanguageForFile("file.xyz")).toBe("plaintext");
+  });
+  it("returns plaintext for files with no extension", () => {
+    expect(getLanguageForFile("Makefile")).toBe("plaintext");
+  });
 });
 
 describe("Header component", () => {
@@ -160,14 +182,22 @@ describe("FileList component", () => {
     expect(screen.getByText("No files")).toBeInTheDocument();
   });
 
-  it("marks the active file item", () => {
+  it("calls onFileClick when a file item is clicked", () => {
+    const onFileClick = vi.fn();
     render(
       <FileList
         files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
         activeFileId="main"
+        onFileClick={onFileClick}
       />
     );
-    expect(screen.getByTestId("file-item-main")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("file-item-main"));
+    expect(onFileClick).toHaveBeenCalledWith({
+      id: "main",
+      name: "main.ts",
+      type: "file",
+      parentId: null,
+    });
   });
 });
 
