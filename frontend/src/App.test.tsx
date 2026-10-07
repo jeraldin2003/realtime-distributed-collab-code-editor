@@ -269,6 +269,35 @@ describe("FileList component", () => {
     expect(screen.queryByTestId("file-item-delete-confirm-main")).not.toBeInTheDocument();
     expect(screen.getByTestId("file-item-main")).toBeInTheDocument();
   });
+
+  it("renders presence dots (up to 3 and +N overflow) for other users viewing a file", () => {
+    const fileUsers = {
+      main: [
+        { clientId: 1, name: "Alice", color: "#ff0000", activeFileId: "main" },
+        { clientId: 2, name: "Bob", color: "#00ff00", activeFileId: "main" },
+        { clientId: 3, name: "Charlie", color: "#0000ff", activeFileId: "main" },
+        { clientId: 4, name: "Dave", color: "#ffff00", activeFileId: "main" },
+        { clientId: 99, name: "Local Me", color: "#ffffff", activeFileId: "main" },
+      ],
+    };
+
+    render(
+      <FileList
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        fileUsers={fileUsers}
+        localClientId={99}
+      />
+    );
+
+    expect(screen.getByTestId("file-presence-main")).toBeInTheDocument();
+    expect(screen.getByTestId("presence-dot-main-1")).toBeInTheDocument();
+    expect(screen.getByTestId("presence-dot-main-2")).toBeInTheDocument();
+    expect(screen.getByTestId("presence-dot-main-3")).toBeInTheDocument();
+    // 4th remote user overflows with +1 badge
+    expect(screen.getByTestId("presence-overflow-main")).toHaveTextContent("+1");
+    // Local user (id 99) should be excluded from presence dots
+    expect(screen.queryByTestId("presence-dot-main-99")).not.toBeInTheDocument();
+  });
 });
 
 // ─── NewFileInput ─────────────────────────────────────────────────────────────

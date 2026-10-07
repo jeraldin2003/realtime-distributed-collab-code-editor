@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import type { FileEntry } from "../collab/useIndex.js";
+import type { PresenceUser } from "../collab/usePresence.js";
 import { validateFileName, VALIDATION_MESSAGES } from "../collab/fileIndex.js";
 
 export interface FileListProps {
   files: FileEntry[];
   /** The id of the currently active file. */
   activeFileId?: string;
+  /** Users present in each file doc. */
+  fileUsers?: Record<string, PresenceUser[]>;
+  /** Client ID of the local user to exclude from remote presence dots if needed. */
+  localClientId?: number;
   /** Called when the user clicks a file. */
   onFileClick?: (file: FileEntry) => void;
   /** Called when a file is renamed. */
@@ -17,6 +22,8 @@ export interface FileListProps {
 export const FileList: React.FC<FileListProps> = ({
   files,
   activeFileId,
+  fileUsers,
+  localClientId,
   onFileClick,
   onRenameFile,
   onDeleteFile,
@@ -276,6 +283,62 @@ export const FileList: React.FC<FileListProps> = ({
               >
                 {file.name}
               </span>
+
+              {/* Other users presence dots for this file */}
+              {(() => {
+                const usersInFile = (fileUsers?.[file.id] ?? []).filter(
+                  (u) => localClientId === undefined || u.clientId !== localClientId
+                );
+                if (usersInFile.length === 0) return null;
+
+                const displayUsers = usersInFile.slice(0, 3);
+                const overflowCount = usersInFile.length - displayUsers.length;
+                const tooltipText = usersInFile.map((u) => u.name).join(", ");
+
+                return (
+                  <div
+                    data-testid={`file-presence-${file.id}`}
+                    title={tooltipText}
+                    aria-label={`Users viewing ${file.name}: ${tooltipText}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      marginLeft: "4px",
+                    }}
+                  >
+                    {displayUsers.map((u) => (
+                      <span
+                        key={u.clientId}
+                        data-testid={`presence-dot-${file.id}-${u.clientId}`}
+                        title={u.name}
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "50%",
+                          backgroundColor: u.color,
+                          display: "inline-block",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ))}
+                    {overflowCount > 0 && (
+                      <span
+                        data-testid={`presence-overflow-${file.id}`}
+                        style={{
+                          fontSize: "10px",
+                          color: "#aaaaaa",
+                          marginLeft: "1px",
+                          fontFamily: "sans-serif",
+                          fontWeight: 600,
+                        }}
+                      >
+                        +{overflowCount}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Action buttons (Rename & Delete) */}

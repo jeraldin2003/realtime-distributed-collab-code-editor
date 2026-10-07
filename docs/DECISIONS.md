@@ -78,3 +78,5 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S5] Inline delete confirm replaces the file item row temporarily until confirmed or cancelled; avoids browser `window.confirm`.
 - [P2-S5] When active file is deleted, `resolveActiveFileOnFilesChange` switches to first remaining file or null (empty state) and shows a dismissal notice banner.
 - [P2-S5] Orphaned file docs stay in server memory when deleted (known limitation per ARCHITECTURE.md). Empty state lets user recover by creating a new file.
+- [P2-S6] Index awareness state carries `activeFileId` alongside `user` for each connected client. `usePresence` derives `fileUsers` grouping (`Record<string, PresenceUser[]>`).
+- [P2-S6] `FileList` renders colored presence dots (up to 3, then `+N` badge) representing other users actively viewing each file, with user names in tooltip. Local user is excluded from dots. Header user count remains total online users from index awareness.

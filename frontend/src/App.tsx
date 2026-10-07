@@ -35,6 +35,12 @@ export function App() {
   const presence = usePresence(index?.awareness ?? null);
   const statusData = useStatus();
 
+  // Sync activeFileId to index awareness so peers know which file we are viewing
+  useEffect(() => {
+    if (!index?.awareness) return;
+    index.awareness.setLocalStateField("activeFileId", activeFileId);
+  }, [index?.awareness, activeFileId]);
+
   // Watch for changes to index.files and handle if active file was deleted
   useEffect(() => {
     if (!index) return;
@@ -135,6 +141,8 @@ export function App() {
           <Sidebar
             files={index.files}
             activeFileId={activeFileId ?? undefined}
+            fileUsers={presence.fileUsers}
+            localClientId={index.awareness.clientID}
             onFileClick={handleFileClick}
             onCreateFile={handleCreateFile}
             onRenameFile={handleRenameFile}

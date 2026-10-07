@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { FileList } from "./FileList.js";
 import { NewFileInput } from "./NewFileInput.js";
 import type { FileEntry } from "../collab/useIndex.js";
+import type { PresenceUser } from "../collab/usePresence.js";
 
 export interface SidebarProps {
   files: FileEntry[];
   activeFileId?: string;
+  fileUsers?: Record<string, PresenceUser[]>;
+  localClientId?: number;
   onFileClick?: (file: FileEntry) => void;
   /** Called with the trimmed name when the user confirms a new file name. */
   onCreateFile?: (name: string) => void;
@@ -18,6 +21,8 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   files,
   activeFileId,
+  fileUsers,
+  localClientId,
   onFileClick,
   onCreateFile,
   onRenameFile,
@@ -98,6 +103,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <FileList
         files={files}
         activeFileId={activeFileId}
+        fileUsers={fileUsers}
+        localClientId={localClientId}
         onFileClick={onFileClick}
         onRenameFile={onRenameFile}
         onDeleteFile={onDeleteFile}

@@ -4,11 +4,14 @@ import type { UserIdentity } from "./identity.js";
 
 export interface PresenceUser extends UserIdentity {
   clientId: number;
+  activeFileId: string | null;
 }
 
 export interface PresenceState {
   users: PresenceUser[];
   onlineCount: number;
+  /** Map of fileId to list of users currently viewing that file */
+  fileUsers: Record<string, PresenceUser[]>;
 }
 
 const STYLE_ELEMENT_ID = "y-monaco-remote-cursor-styles";
@@ -86,34 +89,47 @@ export function usePresence(awareness: Awareness | null | undefined): PresenceSt
   const [presence, setPresence] = useState<PresenceState>({
     users: [],
     onlineCount: 0,
+    fileUsers: {},
   });
 
   useEffect(() => {
     if (!awareness) return;
 
-    const parsePresenceUsers = (): PresenceUser[] => {
+    const parsePresenceUsers = (): { users: PresenceUser[]; fileUsers: Record<string, PresenceUser[]> } => {
       const states = awareness.getStates();
-      const list: PresenceUser[] = [];
+      const users: PresenceUser[] = [];
+      const fileUsers: Record<string, PresenceUser[]> = {};
 
       states.forEach((state, clientId) => {
         if (state && state.user && typeof state.user.name === "string" && typeof state.user.color === "string") {
-          list.push({
+          const activeFileId = typeof state.activeFileId === "string" ? state.activeFileId : null;
+          const user: PresenceUser = {
             clientId,
             name: state.user.name,
             color: state.user.color,
-          });
+            activeFileId,
+          };
+          users.push(user);
+
+          if (activeFileId) {
+            if (!fileUsers[activeFileId]) {
+              fileUsers[activeFileId] = [];
+            }
+            fileUsers[activeFileId].push(user);
+          }
         }
       });
 
-      return list;
+      return { users, fileUsers };
     };
 
     const handleAwarenessChange = () => {
-      const users = parsePresenceUsers();
+      const { users, fileUsers } = parsePresenceUsers();
       updateRemoteCursorStyles(users, awareness.clientID);
       setPresence({
         users,
         onlineCount: users.length,
+        fileUsers,
       });
     };
 
