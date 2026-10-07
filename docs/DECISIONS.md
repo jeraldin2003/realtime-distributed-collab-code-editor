@@ -69,3 +69,8 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S3] `monaco.editor.setModelLanguage(model, languageId)` verified in `standaloneEditor.js` ESM source.
 - [P2-S3] `identity` must NOT be in `useFileDoc` deps — `getOrCreateIdentity()` returns a new object on every App render, causing an infinite effect loop. Suppressed with `eslint-disable-next-line react-hooks/exhaustive-deps`.
 - [P2-S3] `getLanguageForFile` defaults to `"plaintext"` for unknown/absent extensions.
+- [P2-S4] Frontend `fileIndex.ts` is a mirror of `backend/src/fileIndex.ts`; no shared package — both covered by tests including concurrent merge.
+- [P2-S4] Concurrent same-name creates from two users are allowed to produce two entries (IDs differ); list sorts by name then id so both are visible. Validation only blocks same-name creation by a single user at the time of input.
+- [P2-S4] `useIndex` now exposes `ydoc: Y.Doc` so App can call `createFile(ydoc, {name})` directly without a separate hook.
+- [P2-S4] `validateFileName` does a case-insensitive duplicate check against current `files[]` at confirm time; App adds a second guard after `createFile` returns to handle any race.
+- [P2-S4] `NewFileInput` auto-cancels on blur if input is empty; confirms on Enter or blur with non-empty valid name.

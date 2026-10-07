@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S4
-**Last completed step:** P2-S3
-**Repo state:** Phase 2 in progress; file switching and editor rebinding done
+**Current step:** P2-S5
+**Last completed step:** P2-S4
+**Repo state:** Phase 2 in progress; file creation with live sync done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -21,7 +21,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P2-S1 | done | 3789c1a | Backend file model: docNames, fileIndex, server doc-name validation |
 | P2-S2 | done | e5f5a26 | Index sync, file list sidebar, cap moved to project:index |
 | P2-S3 | done | d475a5f | Switch files, rebind editor, language detection |
-| P2-S4 | todo | | |
+| P2-S4 | done | bb35cb8 | Create files with live sync; NewFileInput, fileIndex helpers |
 | P2-S5 | todo | | |
 | P2-S6 | todo | | |
 | P2-S7 | optional | | |
@@ -31,7 +31,7 @@ The agent updates this file at the end of every step. It is the memory between s
 (none)
 
 ## Notes for next session
-- P2-S3 added: `languages.ts` (extension→Monaco language id map), `useFileDoc.ts` (file provider per fileId, attach() required, identity not in deps), `Editor.tsx` now has two effects (create-once + rebind-on-ytext), `FileList.tsx`/`Sidebar.tsx` have onFileClick, `App.tsx` has activeFileId state.
-- `useCollab.ts` is retained but no longer used in App (superseded by `useFileDoc`).
-- Infinite re-render trap: `getOrCreateIdentity()` returns a new object each render; do NOT put `identity` in `useFileDoc` deps. `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the deps array.
-- `provider.attach()` must be called manually when `websocketProvider` is supplied externally (same rule as P2-S2).
+- P2-S4 added: `fileIndex.ts` (frontend mirror of backend: createFile, validateFileName, FILE_ID_REGEX, listFiles), `fileIndex.test.ts`, `NewFileInput.tsx`, updated Sidebar with "+" button and inline input, App wires onCreateFile → createFile(ydoc) → setActiveFileId.
+- useIndex now exposes `ydoc: Y.Doc` so App can call createFile directly.
+- `identity` must NOT be in useFileDoc deps — still true from P2-S3.
+- Concurrent same-name creates produce two entries (both visible, sorted by name then id) — noted in DECISIONS.md.
