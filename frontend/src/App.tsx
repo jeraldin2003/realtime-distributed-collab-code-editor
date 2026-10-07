@@ -10,32 +10,41 @@ import { usePresence } from "./collab/usePresence.js";
 import { useStatus } from "./collab/useStatus.js";
 import { getOrCreateIdentity } from "./collab/identity.js";
 import { getLanguageForFile } from "./languages.js";
+import { createFile, validateFileName } from "./collab/fileIndex.js";
 import type { FileEntry } from "./collab/useIndex.js";
 
 export function App() {
   const [activeFileId, setActiveFileId] = useState<string>("main");
 
   const index = useIndex();
-  // Identity is stable (from sessionStorage) — safe to read outside an effect.
   const identity = getOrCreateIdentity();
   const fileDoc = useFileDoc(
     activeFileId,
     index?.websocketProvider ?? null,
     identity
   );
-  // Presence derived from index provider awareness (counts all connected users).
   const presence = usePresence(index?.awareness ?? null);
   const statusData = useStatus();
 
-  // Find the active file's name from the index for header + language detection.
   const activeFile: FileEntry | undefined = index?.files.find(
     (f) => f.id === activeFileId
   );
-  const activeFileName = activeFile?.name ?? `${activeFileId}`;
+  const activeFileName = activeFile?.name ?? activeFileId;
   const language = getLanguageForFile(activeFileName);
 
   const handleFileClick = (file: FileEntry) => {
     setActiveFileId(file.id);
+  };
+
+  const handleCreateFile = (name: string) => {
+    if (!index?.ydoc) return;
+    // Validate before mutating (guard against race where files changed between
+    // the user typing and confirming).
+    const err = validateFileName(name, index.files);
+    if (err) return; // NewFileInput already blocked invalid names; silent guard here
+    const newId = createFile(index.ydoc, { name });
+    // Auto-select the new file for the creator only.
+    setActiveFileId(newId);
   };
 
   return (
@@ -70,16 +79,15 @@ export function App() {
           height: "calc(100vh - 44px)",
         }}
       >
-        {/* Left sidebar — file list */}
         {index && !index.isRoomFull && (
           <Sidebar
             files={index.files}
             activeFileId={activeFileId}
             onFileClick={handleFileClick}
+            onCreateFile={handleCreateFile}
           />
         )}
 
-        {/* Main content area */}
         <main
           style={{
             flex: 1,

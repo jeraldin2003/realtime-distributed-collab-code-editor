@@ -43,6 +43,8 @@ export interface IndexState {
   awareness: Awareness;
   /** The shared websocket — pass to useCollab so only one socket is opened. */
   websocketProvider: HocuspocusProviderWebsocket;
+  /** The index Y.Doc — pass to createFile() to mutate the file list. */
+  ydoc: Y.Doc;
 }
 
 function readFiles(filesMap: Y.Map<Y.Map<unknown>>): FileEntry[] {
@@ -109,6 +111,7 @@ export function useIndex(): IndexState | null {
           retry,
           awareness: aw,
           websocketProvider: wsProvider,
+          ydoc,
         };
         stateRef.current = next;
         setState(next);
@@ -161,6 +164,7 @@ export function useIndex(): IndexState | null {
       retry,
       awareness,
       websocketProvider: wsProvider,
+      ydoc,
     };
     stateRef.current = initial;
     setState(initial);

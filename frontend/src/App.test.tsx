@@ -4,6 +4,7 @@ import App from "./App.js";
 import { Header } from "./components/Header.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { FileList } from "./components/FileList.js";
+import { NewFileInput } from "./components/NewFileInput.js";
 import { FILE_NAME } from "./config.js";
 import { getLanguageForFile } from "./languages.js";
 
@@ -11,7 +12,7 @@ import { getLanguageForFile } from "./languages.js";
 // browser build. Mock the entire module so Vitest (jsdom) can skip it.
 vi.mock("./monaco-workers.js", () => ({}));
 
-// Mock monaco-editor create for unit testing in jsdom environment.
+// Mock monaco-editor for unit testing in jsdom environment.
 vi.mock("monaco-editor", () => ({
   editor: {
     create: vi.fn(() => ({
@@ -40,7 +41,7 @@ vi.mock("y-monaco", () => {
   return { MonacoBinding };
 });
 
-// Mock @hocuspocus/provider so no real WebSocket is opened in tests.
+// Mock @hocuspocus/provider — no real WebSocket opened in tests.
 vi.mock("@hocuspocus/provider", () => {
   const WebSocketStatus = {
     Connecting: "connecting",
@@ -64,7 +65,6 @@ vi.mock("@hocuspocus/provider", () => {
         new Map([[1, { user: { name: "Swift Fox", color: "#4caf50" } }]])
       ),
     };
-
     constructor({
       onStatus,
     }: {
@@ -73,7 +73,6 @@ vi.mock("@hocuspocus/provider", () => {
     }) {
       onStatus?.({ status: WebSocketStatus.Connecting });
     }
-
     attach() {}
     detach() {}
     destroy() {}
@@ -82,7 +81,7 @@ vi.mock("@hocuspocus/provider", () => {
   return { HocuspocusProvider, HocuspocusProviderWebsocket, WebSocketStatus };
 });
 
-// Mock yjs so no real CRDT is created.
+// Mock yjs — no real CRDT in tests.
 vi.mock("yjs", () => {
   class Doc {
     getText() {
@@ -96,10 +95,16 @@ vi.mock("yjs", () => {
         size: 0,
       };
     }
+    // createFile uses doc.transact(); provide a no-op
+    transact(fn: () => void) {
+      fn();
+    }
     destroy() {}
   }
   return { Doc };
 });
+
+// ─── languages ────────────────────────────────────────────────────────────────
 
 describe("languages", () => {
   it("returns typescript for .ts files", () => {
@@ -124,6 +129,8 @@ describe("languages", () => {
     expect(getLanguageForFile("Makefile")).toBe("plaintext");
   });
 });
+
+// ─── Header ───────────────────────────────────────────────────────────────────
 
 describe("Header component", () => {
   it("renders app name, file name, and status text", () => {
@@ -160,6 +167,8 @@ describe("Header component", () => {
     expect(screen.getByText("3 / 10 online")).toBeInTheDocument();
   });
 });
+
+// ─── FileList ─────────────────────────────────────────────────────────────────
 
 describe("FileList component", () => {
   it("renders a list of file names", () => {
@@ -201,8 +210,99 @@ describe("FileList component", () => {
   });
 });
 
+// ─── NewFileInput ─────────────────────────────────────────────────────────────
+
+describe("NewFileInput component", () => {
+  const files = [{ id: "main", name: "main.ts", type: "file" as const, parentId: null }];
+
+  it("renders an input field", () => {
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId("new-file-input")).toBeInTheDocument();
+  });
+
+  it("calls onConfirm with trimmed name on Enter", () => {
+    const onConfirm = vi.fn();
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />
+    );
+    const input = screen.getByTestId("new-file-input");
+    fireEvent.change(input, { target: { value: " utils.ts " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onConfirm).toHaveBeenCalledWith("utils.ts");
+  });
+
+  it("calls onCancel on Escape", () => {
+    const onCancel = vi.fn();
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={vi.fn()}
+        onCancel={onCancel}
+      />
+    );
+    fireEvent.keyDown(screen.getByTestId("new-file-input"), { key: "Escape" });
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it("shows error for duplicate name", () => {
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const input = screen.getByTestId("new-file-input");
+    fireEvent.change(input, { target: { value: "main.ts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByTestId("new-file-error")).toBeInTheDocument();
+  });
+
+  it("shows error for empty name", () => {
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const input = screen.getByTestId("new-file-input");
+    fireEvent.change(input, { target: { value: "  " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByTestId("new-file-error")).toBeInTheDocument();
+  });
+
+  it("clears error when typing after an error", () => {
+    render(
+      <NewFileInput
+        existingFiles={files}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+    const input = screen.getByTestId("new-file-input");
+    fireEvent.change(input, { target: { value: "main.ts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByTestId("new-file-error")).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "other.ts" } });
+    expect(screen.queryByTestId("new-file-error")).not.toBeInTheDocument();
+  });
+});
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
 describe("Sidebar component", () => {
-  it("renders the sidebar with Files header and file list", () => {
+  it("renders Files header and file list", () => {
     render(
       <Sidebar
         files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
@@ -213,7 +313,38 @@ describe("Sidebar component", () => {
     expect(screen.getByText("Files")).toBeInTheDocument();
     expect(screen.getByText("main.ts")).toBeInTheDocument();
   });
+
+  it("shows NewFileInput after clicking the new-file button", () => {
+    render(
+      <Sidebar
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        activeFileId="main"
+        onCreateFile={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId("new-file-input")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("new-file-button"));
+    expect(screen.getByTestId("new-file-input")).toBeInTheDocument();
+  });
+
+  it("calls onCreateFile when a valid name is confirmed", () => {
+    const onCreateFile = vi.fn();
+    render(
+      <Sidebar
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        activeFileId="main"
+        onCreateFile={onCreateFile}
+      />
+    );
+    fireEvent.click(screen.getByTestId("new-file-button"));
+    const input = screen.getByTestId("new-file-input");
+    fireEvent.change(input, { target: { value: "utils.ts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onCreateFile).toHaveBeenCalledWith("utils.ts");
+  });
 });
+
+// ─── App shell ────────────────────────────────────────────────────────────────
 
 describe("App shell", () => {
   it("renders header and editor container element", () => {
@@ -222,9 +353,9 @@ describe("App shell", () => {
     expect(screen.getByTestId("monaco-editor-container")).toBeInTheDocument();
   });
 
-  it("renders the sidebar", () => {
+  it("renders the sidebar with new-file button", () => {
     render(<App />);
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
-    expect(screen.getByText("Files")).toBeInTheDocument();
+    expect(screen.getByTestId("new-file-button")).toBeInTheDocument();
   });
 });

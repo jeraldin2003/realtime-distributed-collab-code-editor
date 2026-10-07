@@ -1,18 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
 import { FileList } from "./FileList.js";
+import { NewFileInput } from "./NewFileInput.js";
 import type { FileEntry } from "../collab/useIndex.js";
 
 export interface SidebarProps {
   files: FileEntry[];
   activeFileId?: string;
   onFileClick?: (file: FileEntry) => void;
+  /** Called with the trimmed name when the user confirms a new file name. */
+  onCreateFile?: (name: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   files,
   activeFileId,
   onFileClick,
+  onCreateFile,
 }) => {
+  const [creatingFile, setCreatingFile] = useState(false);
+
+  const handleConfirm = (name: string) => {
+    setCreatingFile(false);
+    onCreateFile?.(name);
+  };
+
+  const handleCancel = () => {
+    setCreatingFile(false);
+  };
+
   return (
     <aside
       data-testid="sidebar"
@@ -27,22 +42,62 @@ export const Sidebar: React.FC<SidebarProps> = ({
         overflowY: "auto",
       }}
     >
-      {/* Section header */}
+      {/* Section header + New file button */}
       <div
         style={{
-          padding: "8px 16px 4px",
-          fontSize: "11px",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#888888",
-          userSelect: "none",
+          padding: "6px 8px 4px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        Files
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "#888888",
+            userSelect: "none",
+          }}
+        >
+          Files
+        </span>
+        <button
+          data-testid="new-file-button"
+          title="New file"
+          aria-label="New file"
+          onClick={() => setCreatingFile(true)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#888888",
+            cursor: "pointer",
+            fontSize: "16px",
+            lineHeight: 1,
+            padding: "0 2px",
+            borderRadius: "3px",
+          }}
+          onMouseOver={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color = "#cccccc")
+          }
+          onMouseOut={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color = "#888888")
+          }
+        >
+          +
+        </button>
       </div>
 
       <FileList files={files} activeFileId={activeFileId} onFileClick={onFileClick} />
+
+      {creatingFile && (
+        <NewFileInput
+          existingFiles={files}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
     </aside>
   );
 };
