@@ -32,19 +32,21 @@ export type ValidationError =
 /**
  * Validate a proposed file name against the current file list.
  * Returns null if valid, or a ValidationError string.
+ * excludeId allows renaming a file without colliding with itself.
  */
 export function validateFileName(
   name: string,
-  existingFiles: FileEntry[]
+  existingFiles: FileEntry[],
+  excludeId?: string
 ): ValidationError | null {
   const trimmed = name.trim();
   if (trimmed.length === 0) return "empty";
   if (trimmed.length > 100) return "too_long";
   if (trimmed.includes("/") || trimmed.includes("\\")) return "invalid_chars";
-  if (existingFiles.length >= MAX_FILES) return "max_files";
+  if (!excludeId && existingFiles.length >= MAX_FILES) return "max_files";
   // Duplicate check: same trimmed name at the same level (parentId = null for flat files)
   const duplicate = existingFiles.some(
-    (f) => f.name.trim().toLowerCase() === trimmed.toLowerCase()
+    (f) => f.id !== excludeId && f.name.trim().toLowerCase() === trimmed.toLowerCase()
   );
   if (duplicate) return "duplicate_name";
   return null;
@@ -90,6 +92,33 @@ export function createFile(
     files.set(id, entry);
   });
   return id;
+}
+
+/**
+ * Rename a file entry. No-op if the id does not exist.
+ */
+export function renameFile(doc: Y.Doc, id: string, name: string): void {
+  const files = getFilesMap(doc);
+  const entry = files.get(id);
+  if (!entry) {
+    return;
+  }
+  doc.transact(() => {
+    entry.set("name", name.trim());
+  });
+}
+
+/**
+ * Delete a file entry from the index. No-op if the id does not exist.
+ */
+export function deleteFile(doc: Y.Doc, id: string): void {
+  const files = getFilesMap(doc);
+  if (!files.has(id)) {
+    return;
+  }
+  doc.transact(() => {
+    files.delete(id);
+  });
 }
 
 /**

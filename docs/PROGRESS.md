@@ -2,9 +2,9 @@
 
 The agent updates this file at the end of every step. It is the memory between sessions.
 
-**Current step:** P2-S5
-**Last completed step:** P2-S4
-**Repo state:** Phase 2 in progress; file creation with live sync done
+**Current step:** P2-S6
+**Last completed step:** P2-S5
+**Repo state:** Phase 2 in progress; rename and delete with deleted-while-open handling done
 
 ## Step status
 | ID | Status | Commit | Notes |
@@ -22,7 +22,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P2-S2 | done | e5f5a26 | Index sync, file list sidebar, cap moved to project:index |
 | P2-S3 | done | d475a5f | Switch files, rebind editor, language detection |
 | P2-S4 | done | bb35cb8 | Create files with live sync; NewFileInput, fileIndex helpers |
-| P2-S5 | todo | | |
+| P2-S5 | done | pending | Rename & delete with inline UI and deleted-while-open handling |
 | P2-S6 | todo | | |
 | P2-S7 | optional | | |
 | P2-S8 | todo | | |
@@ -31,7 +31,11 @@ The agent updates this file at the end of every step. It is the memory between s
 (none)
 
 ## Notes for next session
-- P2-S4 added: `fileIndex.ts` (frontend mirror of backend: createFile, validateFileName, FILE_ID_REGEX, listFiles), `fileIndex.test.ts`, `NewFileInput.tsx`, updated Sidebar with "+" button and inline input, App wires onCreateFile → createFile(ydoc) → setActiveFileId.
-- useIndex now exposes `ydoc: Y.Doc` so App can call createFile directly.
-- `identity` must NOT be in useFileDoc deps — still true from P2-S3.
-- Concurrent same-name creates produce two entries (both visible, sorted by name then id) — noted in DECISIONS.md.
+- P2-S5 added:
+  - `renameFile`, `deleteFile`, and `excludeId` support in `validateFileName` in `frontend/src/collab/fileIndex.ts`
+  - `resolveActiveFileOnFilesChange` pure function helper in `frontend/src/collab/fileResolution.ts` with tests
+  - Inline rename and inline confirmation delete UI in `FileList.tsx` (no `window.confirm`)
+  - `Notice.tsx` dismissal banner when active file is deleted
+  - `EmptyState.tsx` placeholder when all files are deleted with "Create file" button
+  - App.tsx handles file rename/delete, auto-transitions on open file deletion, and presents EmptyState when no files remain
+

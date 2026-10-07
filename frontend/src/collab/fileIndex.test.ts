@@ -5,6 +5,8 @@ import {
   validateFileName,
   VALIDATION_MESSAGES,
   createFile,
+  renameFile,
+  deleteFile,
   listFiles,
 } from "./fileIndex.js";
 import type { FileEntry } from "./useIndex.js";
@@ -193,3 +195,81 @@ describe("concurrent creates merge correctly", () => {
     expect(byId[id2]?.name).toBe("from-doc2.ts");
   });
 });
+
+// ─── renameFile ───────────────────────────────────────────────────────────────
+
+describe("renameFile", () => {
+  it("renames an existing file entry", () => {
+    const doc = new Y.Doc();
+    const id = createFile(doc, { name: "initial.ts" });
+    renameFile(doc, id, "renamed.ts");
+    const files = listFiles(doc);
+    expect(files[0].name).toBe("renamed.ts");
+  });
+
+  it("trims the new name", () => {
+    const doc = new Y.Doc();
+    const id = createFile(doc, { name: "initial.ts" });
+    renameFile(doc, id, "  trimmed.ts  ");
+    const files = listFiles(doc);
+    expect(files[0].name).toBe("trimmed.ts");
+  });
+
+  it("no-ops if id does not exist", () => {
+    const doc = new Y.Doc();
+    createFile(doc, { name: "initial.ts" });
+    renameFile(doc, "non-existent-id", "new.ts");
+    const files = listFiles(doc);
+    expect(files[0].name).toBe("initial.ts");
+  });
+
+  it("allows renaming to same name when excludeId is passed to validateFileName", () => {
+    const files: FileEntry[] = [
+      { id: "id-1", name: "current.ts", type: "file", parentId: null },
+      { id: "id-2", name: "other.ts", type: "file", parentId: null },
+    ];
+    // Renaming id-1 to "current.ts" or "CURRENT.TS" should be allowed
+    expect(validateFileName("current.ts", files, "id-1")).toBeNull();
+    // Renaming id-1 to "other.ts" should collide
+    expect(validateFileName("other.ts", files, "id-1")).toBe("duplicate_name");
+  });
+});
+
+// ─── deleteFile ───────────────────────────────────────────────────────────────
+
+describe("deleteFile", () => {
+  it("removes an existing file from the index", () => {
+    const doc = new Y.Doc();
+    const id = createFile(doc, { name: "temp.ts" });
+    expect(listFiles(doc)).toHaveLength(1);
+    deleteFile(doc, id);
+    expect(listFiles(doc)).toHaveLength(0);
+  });
+
+  it("no-ops if id does not exist", () => {
+    const doc = new Y.Doc();
+    createFile(doc, { name: "keep.ts" });
+    deleteFile(doc, "non-existent-id");
+    expect(listFiles(doc)).toHaveLength(1);
+  });
+
+  it("concurrent delete and edit in another doc merges correctly", () => {
+    const doc1 = new Y.Doc();
+    const id = createFile(doc1, { name: "file.ts" });
+    const doc2 = new Y.Doc();
+    Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1));
+
+    // doc1 deletes the file
+    deleteFile(doc1, id);
+    // doc2 creates a new file
+    createFile(doc2, { name: "new.ts" });
+
+    // merge
+    Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1));
+    Y.applyUpdate(doc1, Y.encodeStateAsUpdate(doc2));
+
+    expect(listFiles(doc1).map((f) => f.name)).toEqual(["new.ts"]);
+    expect(listFiles(doc2).map((f) => f.name)).toEqual(["new.ts"]);
+  });
+});
+

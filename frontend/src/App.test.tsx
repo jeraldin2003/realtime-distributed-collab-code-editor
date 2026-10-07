@@ -87,7 +87,25 @@ vi.mock("yjs", () => {
     getText() {
       return { toString: () => "" };
     }
-    getMap() {
+    getMap(name: string) {
+      if (name === "files") {
+        const defaultMap = new Map([
+          [
+            "main",
+            new Map<string, unknown>([
+              ["name", "main.ts"],
+              ["type", "file"],
+              ["parentId", null],
+            ]),
+          ],
+        ]);
+        return {
+          entries: () => defaultMap.entries(),
+          observe: vi.fn(),
+          unobserve: vi.fn(),
+          size: 1,
+        };
+      }
       return {
         entries: () => [],
         observe: vi.fn(),
@@ -207,6 +225,49 @@ describe("FileList component", () => {
       type: "file",
       parentId: null,
     });
+  });
+
+  it("triggers inline rename on rename button click and submits new name", () => {
+    const onRenameFile = vi.fn();
+    render(
+      <FileList
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        onRenameFile={onRenameFile}
+      />
+    );
+    fireEvent.click(screen.getByTestId("file-rename-btn-main"));
+    const input = screen.getByTestId("file-rename-input-main") as HTMLInputElement;
+    expect(input.value).toBe("main.ts");
+    fireEvent.change(input, { target: { value: "renamed.ts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onRenameFile).toHaveBeenCalledWith("main", "renamed.ts");
+  });
+
+  it("shows delete confirmation and calls onDeleteFile when confirmed", () => {
+    const onDeleteFile = vi.fn();
+    render(
+      <FileList
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+        onDeleteFile={onDeleteFile}
+      />
+    );
+    fireEvent.click(screen.getByTestId("file-delete-btn-main"));
+    expect(screen.getByTestId("file-item-delete-confirm-main")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("file-delete-confirm-btn-main"));
+    expect(onDeleteFile).toHaveBeenCalledWith("main");
+  });
+
+  it("cancels delete when cancel button clicked", () => {
+    render(
+      <FileList
+        files={[{ id: "main", name: "main.ts", type: "file", parentId: null }]}
+      />
+    );
+    fireEvent.click(screen.getByTestId("file-delete-btn-main"));
+    expect(screen.getByTestId("file-item-delete-confirm-main")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("file-delete-cancel-btn-main"));
+    expect(screen.queryByTestId("file-item-delete-confirm-main")).not.toBeInTheDocument();
+    expect(screen.getByTestId("file-item-main")).toBeInTheDocument();
   });
 });
 

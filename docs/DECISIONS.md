@@ -74,3 +74,7 @@ Format: `- [step] decision — reason`. Add one line per notable choice. Record 
 - [P2-S4] `useIndex` now exposes `ydoc: Y.Doc` so App can call `createFile(ydoc, {name})` directly without a separate hook.
 - [P2-S4] `validateFileName` does a case-insensitive duplicate check against current `files[]` at confirm time; App adds a second guard after `createFile` returns to handle any race.
 - [P2-S4] `NewFileInput` auto-cancels on blur if input is empty; confirms on Enter or blur with non-empty valid name.
+- [P2-S5] Inline rename uses same validation as create via `validateFileName(name, files, excludeId)` where `excludeId` prevents colliding with itself on case or unchanged name.
+- [P2-S5] Inline delete confirm replaces the file item row temporarily until confirmed or cancelled; avoids browser `window.confirm`.
+- [P2-S5] When active file is deleted, `resolveActiveFileOnFilesChange` switches to first remaining file or null (empty state) and shows a dismissal notice banner.
+- [P2-S5] Orphaned file docs stay in server memory when deleted (known limitation per ARCHITECTURE.md). Empty state lets user recover by creating a new file.

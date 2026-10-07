@@ -9,6 +9,10 @@ export interface SidebarProps {
   onFileClick?: (file: FileEntry) => void;
   /** Called with the trimmed name when the user confirms a new file name. */
   onCreateFile?: (name: string) => void;
+  /** Called when a file is renamed. */
+  onRenameFile?: (id: string, newName: string) => void;
+  /** Called when a file is deleted. */
+  onDeleteFile?: (id: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -16,6 +20,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeFileId,
   onFileClick,
   onCreateFile,
+  onRenameFile,
+  onDeleteFile,
 }) => {
   const [creatingFile, setCreatingFile] = useState(false);
 
@@ -89,7 +95,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <FileList files={files} activeFileId={activeFileId} onFileClick={onFileClick} />
+      <FileList
+        files={files}
+        activeFileId={activeFileId}
+        onFileClick={onFileClick}
+        onRenameFile={onRenameFile}
+        onDeleteFile={onDeleteFile}
+      />
 
       {creatingFile && (
         <NewFileInput
