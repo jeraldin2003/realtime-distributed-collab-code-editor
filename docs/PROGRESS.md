@@ -24,7 +24,7 @@ The agent updates this file at the end of every step. It is the memory between s
 | P2-S4 | done | bb35cb8 | Create files with live sync; NewFileInput, fileIndex helpers |
 | P2-S5 | done | 3283edc | Rename & delete with inline UI and deleted-while-open handling |
 | P2-S6 | done | b417a90 | Per-file presence in sidebar with colored dots |
-| P2-S7 | done | pending | Nested folders with tree view, depth limit 5, and recursive delete |
+| P2-S7 | done | b98a22a | Nested folders with tree view, depth limit 5, and recursive delete |
 | P2-S8 | todo | | |
 
 ## Blockers
